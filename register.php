@@ -2,7 +2,8 @@
 include "config/koneksi.php";
 
 if (isset($_POST['register'])) {
-    $username = $_POST['username'];
+    // Escape username to prevent SQL injection
+    $username = mysqli_real_escape_string($koneksi, $_POST['username']);
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
     // cek username sudah ada
@@ -19,11 +20,11 @@ if (isset($_POST['register'])) {
         );
 
         if ($insert) {
-            // setelah register → balik ke login
-            header("Location: login.php");
+            // setelah register → balik ke login (index.php is the login page)
+            header("Location: index.php");
             exit;
         } else {
-            $error = "Registrasi gagal";
+            $error = "Registrasi gagal: " . mysqli_error($koneksi);
         }
     }
 }
