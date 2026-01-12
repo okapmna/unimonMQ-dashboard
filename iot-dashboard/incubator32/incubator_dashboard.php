@@ -294,7 +294,7 @@ $topic_pub   = "incubator/" . $device_id . "/con";
         }
 
         function sendTargetData() {
-            const payload = JSON.stringify({ target_suhu: currentTargetTemp, target_kelembapan: currentTargetHum });
+            const payload = JSON.stringify({ target_temp: currentTargetTemp, target_hum: currentTargetHum });
             if (client.isConnected()) {
                 const message = new Paho.MQTT.Message(payload);
                 message.destinationName = mqttConfig.topics.publish.control;
