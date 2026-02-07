@@ -18,7 +18,6 @@ if (isset($_POST['login'])) {
 
         if (password_verify($password, $data['password'])) {
             $_SESSION['username'] = $data['user_name'];
-
             header("Location: dashboard.php");
             exit;
         } else {
@@ -30,79 +29,76 @@ if (isset($_POST['login'])) {
 }
 ?>
 
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Unimon</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Manrope', 'sans-serif'] },
+                    colors: {
+                        background: '#FFF8EC',
+                        'batch-brown': '#C69C6D',
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body {
-            background: linear-gradient(120deg, #89f7fe, #66a6ff);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0;
-        }
-        .login-box {
-            background: white;
-            padding: 30px;
-            width: 350px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-        .login-box h2 { text-align: center; margin-bottom: 25px; }
-        .login-box input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-        }
-        .login-box button {
-            width: 100%;
-            padding: 10px;
-            background: #66a6ff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .btn-daftar {
-            margin-top: 10px;
-            background: #eee;
-            color: #333;
-        }
-        .msg {
-            text-align: center;
-            margin-top: 10px;
-            color: red;
-            font-weight: bold;
-        }
+        body { background-color: #FFF8EC; }
     </style>
 </head>
-<body>
+<body class="font-sans min-h-screen flex items-center justify-center p-6">
 
-<div class="login-box">
-    <h2>Form Login</h2>
+    <div class="w-full max-w-md bg-white rounded-3xl p-10 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-white">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold text-black mb-2">Welcome Back</h2>
+            <p class="text-gray-500 text-sm tracking-wide uppercase font-semibold">UnimonMQ</p>
+        </div>
 
-    <form method="post">
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <button type="submit" name="login">Login</button>
-    </form>
+        <form method="post" class="space-y-5">
+            <div>
+                <label class="text-[0.65rem] font-bold uppercase tracking-wider text-gray-600 block mb-2 px-1">Username</label>
+                <input type="text" name="username" placeholder="Enter your username" required
+                    class="w-full px-5 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#C69C6D] focus:ring-1 focus:ring-[#C69C6D] outline-none transition duration-200">
+            </div>
 
-    <form action="register.php" method="get">
-        <button type="submit" class="btn-daftar">Daftar</button>
-    </form>
+            <div>
+                <label class="text-[0.65rem] font-bold uppercase tracking-wider text-gray-600 block mb-2 px-1">Password</label>
+                <input type="password" name="password" placeholder="••••••••" required
+                    class="w-full px-5 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#C69C6D] focus:ring-1 focus:ring-[#C69C6D] outline-none transition duration-200">
+            </div>
 
-    <?php if ($error != "") { ?>
-        <div class="msg"><?= $error ?></div>
-    <?php } ?>
-</div>
+            <button type="submit" name="login" 
+                class="w-full bg-[#C69C6D] text-black font-bold py-3.5 rounded-xl shadow-sm hover:bg-[#b08b61] transition duration-300 mt-4">
+                LOGIN
+            </button>
+        </form>
+
+        <div class="mt-8 pt-8 border-t border-gray-100">
+            <p class="text-center text-sm text-gray-600 mb-4">Belum memiliki akun?</p>
+            <form action="register.php" method="get">
+                <button type="submit" class="w-full border-2 border-black text-black font-bold py-3 rounded-xl hover:bg-black hover:text-white transition duration-300">
+                    DAFTAR SEKARANG
+                </button>
+            </form>
+        </div>
+
+        <?php if ($error != "") { ?>
+            <div class="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl">
+                <p class="text-center text-sm font-bold text-red-600"><?= $error ?></p>
+            </div>
+        <?php } ?>
+    </div>
 
 </body>
 </html>
