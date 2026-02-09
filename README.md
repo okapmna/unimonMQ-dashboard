@@ -1,4 +1,4 @@
-# UNIMQ - Dashboard
+# UNIMONMQ - Dashboard
 Simple IoT Dashboard for MQTT
 
 ## Preview
@@ -14,3 +14,4 @@ Simple IoT Dashboard for MQTT
 - IDA BAGUS WILLI PARMITA - [@WILIOP-666](https://github.com/WILIOP-666)
 - Maria M - [@nmau080-eng](https://github.com/nmau080-eng)
 - Doel_176 - [@doelCR7](https://github.com/doelCR7)
+
