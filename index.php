@@ -1,23 +1,27 @@
 <?php
-ob_start(); 
+ob_start();
 session_start();
 include "config/koneksi.php";
 
 $error = "";
 
 if (isset($_POST['login'])) {
-    $username = mysqli_real_escape_string($koneksi, $_POST['username']);
+    $username = $_POST['username'];
     $password = $_POST['password'];
 
-    $query = mysqli_query($koneksi,
-        "SELECT * FROM user WHERE user_name='$username' LIMIT 1"
-    );
+    // PREPARED STATEMENT
+    $stmt = $koneksi->prepare("SELECT user_id, user_name, password FROM user WHERE user_name = ? LIMIT 1");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-    if ($query && mysqli_num_rows($query) === 1) {
-        $data = mysqli_fetch_assoc($query);
+    if ($result && $result->num_rows === 1) {
+        $data = $result->fetch_assoc();
 
         if (password_verify($password, $data['password'])) {
+            $_SESSION['user_id'] = $data['user_id'];
             $_SESSION['username'] = $data['user_name'];
+            
             header("Location: dashboard.php");
             exit;
         } else {
@@ -26,6 +30,7 @@ if (isset($_POST['login'])) {
     } else {
         $error = "Username tidak ditemukan";
     }
+    $stmt->close();
 }
 ?>
 

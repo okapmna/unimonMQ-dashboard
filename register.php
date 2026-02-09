@@ -2,30 +2,35 @@
 include "config/koneksi.php";
 
 if (isset($_POST['register'])) {
-    $username = mysqli_real_escape_string($koneksi, $_POST['username']);
+    $username = $_POST['username'];
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    $cek = mysqli_query($koneksi, 
-        "SELECT * FROM user WHERE user_name='$username'"
-    );
+    // username check
+    $stmt_cek = $koneksi->prepare("SELECT user_id FROM user WHERE user_name = ?");
+    $stmt_cek->bind_param("s", $username);
+    $stmt_cek->execute();
+    $result_cek = $stmt_cek->get_result();
 
-    if (mysqli_num_rows($cek) > 0) {
-        $error = "Username sudah terdaftar";
+    if ($result_cek->num_rows > 0) {
+        $error = "username is already registered";
     } else {
-        $insert = mysqli_query($koneksi,
-            "INSERT INTO user (user_name, password)
-             VALUES ('$username', '$password')"
-        );
+        // save new user to db
+        $stmt_ins = $koneksi->prepare("INSERT INTO user (user_name, password) VALUES (?, ?)");
+        $stmt_ins->bind_param("ss", $username, $password);
 
-        if ($insert) {
-            header("Location: index.php");
+        if ($stmt_ins->execute()) {
+            header("Location: index.php?pesan=Registration Success");
             exit;
         } else {
-            $error = "Registrasi gagal: " . mysqli_error($koneksi);
+            $error = "Registration Failed";
         }
+        $stmt_ins->close();
     }
+    $stmt_cek->close();
 }
 ?>
+
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
