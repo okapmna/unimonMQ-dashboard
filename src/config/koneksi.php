@@ -11,8 +11,6 @@ if (file_exists($envPath)) {
 } else {
     die(".env file not found");
 }
-
-// Eksekusi koneksi
 $koneksi = mysqli_connect($host, $user, $pass, $db);
 
 if (!$koneksi) {
