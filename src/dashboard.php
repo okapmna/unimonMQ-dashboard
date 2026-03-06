@@ -114,26 +114,32 @@ include "components/header.php";
             <p class="text-sm text-muted-text font-medium">Welcome, <?= htmlspecialchars($username) ?></p>
         </div>
         <div class="flex items-center gap-4">
+            <a href="profile.php" class="bg-gray-100/50 hover:bg-card-white text-muted-text hover:text-dark-text px-4 py-2 rounded-xl font-bold transition flex items-center gap-2 text-sm shadow-sm border border-transparent hover:border-gray-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-accent-brown" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Profile
+            </a>
+            <a href="logout.php" class="text-red-500 font-semibold hover:text-red-700 hover:underline text-sm">Logout</a>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 mt-6 md:mt-8">
+        <div class="flex items-end justify-between mb-6 md:mb-8">
+            <div>
+                <span class="text-[10px] md:text-xs font-bold tracking-wider text-muted-text uppercase">Overview</span>
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mt-1">My Devices</h2>
+            </div>
             <button onclick="openModal()" class="bg-accent-green hover:bg-[#2e5910] text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-green-900/10 transition transform hover:-translate-y-0.5 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                 </svg>
                 New Device
             </button>
-            <a href="logout.php" class="text-red-500 font-semibold hover:text-red-700 hover:underline text-sm">Logout</a>
-        </div>
-    </nav>
-
-    <main class="max-w-7xl mx-auto px-6 mt-8">
-        <div class="flex items-end justify-between mb-8">
-            <div>
-                <span class="text-xs font-bold tracking-wider text-muted-text uppercase">Overview</span>
-                <h2 class="text-4xl font-bold mt-1">My Devices</h2>
-            </div>
         </div>
 
         <?php if ($devices && mysqli_num_rows($devices) > 0): ?>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                 <?php while ($device = mysqli_fetch_assoc($devices)): ?>
                     <?php
                     $keys = array_keys($device);
@@ -160,48 +166,57 @@ include "components/header.php";
                     }
                     ?>
 
-                    <div class="group relative bg-card-white rounded-3xl p-8 shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-200/80 transition-all duration-300 border border-transparent hover:border-accent-green/20 transform hover:-translate-y-1">
+                    <div class="group relative bg-card-white rounded-3xl p-4 sm:p-6 md:p-8 shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-200/80 transition-all duration-300 border border-transparent hover:border-accent-green/20 transform hover:-translate-y-1">
 
-                        <div class="absolute top-6 right-6 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                            <button type="button" onclick='openEditModal(<?= json_encode($device) ?>)' class="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition-colors" title="Edit Device">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                        <div class="absolute top-3 right-3 sm:top-6 sm:right-6 z-20">
+                            <button type="button" onclick="toggleDeviceMenu(event, 'menu-<?= $id_val ?>')" class="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-dark-text hover:bg-gray-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent-green/50" aria-label="Device Options">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                                 </svg>
                             </button>
-
-                            <form method="POST" onsubmit="return confirm('Hapus device: <?= htmlspecialchars($displayName) ?>?');">
-                                <input type="hidden" name="nama_kolom_target" value="<?= $primary_key ?>">
-                                <input type="hidden" name="id_hapus_target" value="<?= $id_val ?>">
-                                <button type="submit" name="btn_hapus_pintar" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors" title="Hapus">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            <div id="menu-<?= $id_val ?>" class="device-dropdown opacity-0 pointer-events-none absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl shadow-gray-200/50 border border-gray-100 py-1.5 origin-top-right transition-all duration-200 transform scale-95 z-30">
+                                <button type="button" onclick="event.preventDefault(); openEditModal(<?= htmlspecialchars(json_encode($device)) ?>); closeAllDeviceMenus();" class="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-600 hover:text-dark-text hover:bg-gray-50 flex items-center gap-3 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                     </svg>
+                                    Edit Device
                                 </button>
-                            </form>
+                                <div class="border-t border-gray-100 my-1"></div>
+                                <form method="POST" onsubmit="return confirm('Hapus device: <?= htmlspecialchars($displayName) ?>?');">
+                                    <input type="hidden" name="nama_kolom_target" value="<?= $primary_key ?>">
+                                    <input type="hidden" name="id_hapus_target" value="<?= $id_val ?>">
+                                    <button type="submit" name="btn_hapus_pintar" class="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 flex items-center gap-3 transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        Hapus Device
+                                    </button>
+                                </form>
+                            </div>
                         </div>
 
                         <a href="<?= $link ?>" class="block h-full flex flex-col justify-between">
                             <div>
-                                <div class="flex items-center gap-3 mb-6">
-                                    <div class="p-3 bg-gray-50 rounded-2xl">
-                                        <?= $current_icon ?>
+                                <div class="flex flex-row items-center gap-2 mb-2 sm:mb-6">
+                                    <div class="p-1 sm:p-3 bg-gray-50 rounded-lg sm:rounded-2xl shrink-0">
+                                        <?= str_replace('h-8 w-8', 'h-5 w-5 sm:h-8 sm:w-8', $current_icon) ?>
                                     </div>
-                                    <span class="<?= $badge_color ?> px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase">
-                                        <?= htmlspecialchars($device['device_type']) ?>
+                                    <span class="<?= $badge_color ?> px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-xs font-bold tracking-wider uppercase truncate max-w-[80px] sm:max-w-full">
+                                        <?= str_replace('esp32-', '', htmlspecialchars($device['device_type'])) ?>
                                     </span>
                                 </div>
-                                <h3 class="text-3xl font-bold text-dark-text mb-1 leading-tight group-hover:text-accent-green transition-colors">
+                                <h3 class="text-base sm:text-2xl md:text-3xl font-bold text-dark-text mb-1 pr-4 sm:pr-8 group-hover:text-accent-green transition-colors line-clamp-2">
                                     <?= htmlspecialchars($displayName) ?>
                                 </h3>
-                                <div class="mt-6 pt-6 border-t border-gray-100">
-                                    <p class="text-xs font-semibold text-muted-text uppercase mb-1">Broker Config</p>
-                                    <p class="text-sm text-dark-text font-medium truncate">
+                                <div class="mt-2 sm:mt-6 pt-2 sm:pt-6 border-t border-gray-100">
+                                    <p class="text-[9px] sm:text-xs font-semibold text-muted-text uppercase mb-0.5 sm:mb-1">Broker Config</p>
+                                    <p class="text-[10px] sm:text-sm text-dark-text font-medium truncate">
                                         <?= !empty($device['broker_url']) ? htmlspecialchars($device['broker_url']) : '-' ?>
                                     </p>
                                 </div>
                             </div>
-                            <div class="mt-4 text-right">
-                                <span class="text-[10px] text-gray-300 font-mono">ID: <?= $id_val ?></span>
+                            <div class="mt-2 sm:mt-4 text-right">
+                                <span class="text-[8px] sm:text-[10px] text-gray-300 font-mono line-clamp-1">ID: <?= $id_val ?></span>
                             </div>
                         </a>
                     </div>
@@ -352,7 +367,38 @@ include "components/header.php";
             if (evt.keyCode == 27) {
                 closeModal();
                 closeEditModal();
+                closeAllDeviceMenus();
             }
         };
+
+        // Menu Dropdown Logic
+        function toggleDeviceMenu(event, menuId) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const menu = document.getElementById(menuId);
+            const isClosed = menu.classList.contains('opacity-0');
+            
+            closeAllDeviceMenus();
+            
+            if (isClosed) {
+                menu.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+                menu.classList.add('opacity-100', 'scale-100', 'pointer-events-auto');
+            }
+        }
+
+        function closeAllDeviceMenus() {
+            const menus = document.querySelectorAll('.device-dropdown');
+            menus.forEach(menu => {
+                menu.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto');
+                menu.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+            });
+        }
+
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.device-dropdown') && !event.target.closest('button[onclick^="toggleDeviceMenu"]')) {
+                closeAllDeviceMenus();
+            }
+        });
     </script>
 <?php include "components/footer.php"; ?>
