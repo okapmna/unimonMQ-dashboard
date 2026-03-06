@@ -39,15 +39,12 @@ $topic_sub   = "smartlamp/" . $device_id . "/status";
 $topic_pub   = "smartlamp/" . $device_id . "/control";
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($device_data['device_name']) ?> - Smart Lamp</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<?php
+$page_title = htmlspecialchars($device_data['device_name']) . ' - Smart Lamp';
+$body_class = 'p-12 md:p-24 min-h-screen font-sans text-gray-900';
+$base_url = '../../';
+ob_start();
+?>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 
     <script>
@@ -62,24 +59,9 @@ $topic_pub   = "smartlamp/" . $device_id . "/control";
                 publish: { control: "<?= $topic_pub ?>" }
             }
         };
-        
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Manrope', 'sans-serif'] },
-                    colors: {
-                        'cream-bg': '#FFF8EC',
-                        'lamp-blue': '#1E90FF',
-                        'lamp-yellow': '#FBC02D',
-                        'card-shadow': 'rgba(0,0,0,0.1)'
-                    }
-                }
-            }
-        }
     </script>
 
     <style>
-        body { background-color: #FFF8EC; }
         .back-btn { position: fixed; top: 40px; left: 40px; z-index: 50; }
         .back-btn a { display: flex; align-items: center; gap: 8px; background: #fff; padding: 12px 20px; border-radius: 12px; text-decoration: none; color: #333; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: all 0.3s ease; }
         .back-btn a:hover { transform: translateX(-5px); }
@@ -89,9 +71,10 @@ $topic_pub   = "smartlamp/" . $device_id . "/control";
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e5e7eb; border-radius: 2px; }
         input[type=range]::-webkit-slider-thumb { height: 20px; width: 20px; border-radius: 50%; background: #1E90FF; cursor: pointer; -webkit-appearance: none; margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
     </style>
-</head>
-
-<body class="p-12 md:p-24 min-h-screen font-sans text-gray-900">
+<?php
+$extra_head = ob_get_clean();
+include "../../components/header.php";
+?>
 
     <div class="back-btn">
         <a href="../../dashboard.php">
@@ -267,5 +250,4 @@ $topic_pub   = "smartlamp/" . $device_id . "/control";
 
         connect();
     </script>
-</body>
-</html>
+<?php include "../../components/footer.php"; ?>

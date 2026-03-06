@@ -35,15 +35,12 @@ $topic_sub   = "incubator/" . $device_id . "/data";
 $topic_pub   = "incubator/" . $device_id . "/con";
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($device_data['device_name']) ?> - Control</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<?php
+$page_title = htmlspecialchars($device_data['device_name']) . ' - Control';
+$body_class = 'p-8 md:p-12 min-h-screen flex flex-col font-sans text-gray-800';
+$base_url = '../../';
+ob_start();
+?>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 
     <script>
@@ -64,25 +61,16 @@ $topic_pub   = "incubator/" . $device_id . "/con";
             duck:    { temp: 37.8, hum: 60, infoTemp: "Optimal: 37.5°C - 38.0°C", infoHum: "Optimal: 60% - 65%" },
             quail:   { temp: 37.7, hum: 50, infoTemp: "Optimal: 37.5°C - 37.8°C", infoHum: "Optimal: 45% - 55%" }
         };
-
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Manrope', 'sans-serif'] },
-                    colors: { background: '#FFF8EC' }
-                }
-            }
-        }
     </script>
 
     <style>
-        body { background-color: #FFF8EC; }
         .back-btn { position: fixed; top: 20px; left: 20px; z-index: 50; }
         .back-btn a { display: flex; align-items: center; gap: 8px; background: #fff; padding: 10px 16px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: 0.3s; }
     </style>
-</head>
-
-<body class="p-8 md:p-12 min-h-screen flex flex-col font-sans text-gray-800">
+<?php
+$extra_head = ob_get_clean();
+include "../../components/header.php";
+?>
 
     <div class="back-btn">
         <a href="../../dashboard.php">
@@ -256,5 +244,4 @@ $topic_pub   = "incubator/" . $device_id . "/con";
 
         connect();
     </script>
-</body>
-</html>
+<?php include "../../components/footer.php"; ?>
