@@ -4,7 +4,7 @@
  * Destroys the session and redirects to login page
  */
 
-session_start();
+require_once "config/session.php";
 
 // Unset all session variables
 $_SESSION = array();
@@ -19,8 +19,6 @@ if (isset($_COOKIE['remember_me'])) {
         $stmt->execute();
     }
     
-    $isSecure = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
-                (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
     setcookie('remember_me', '', [
         'expires' => time() - 3600,
         'path' => '/',
