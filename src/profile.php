@@ -1,3 +1,4 @@
+<?php
 $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
 session_start([
     'cookie_httponly' => true,
