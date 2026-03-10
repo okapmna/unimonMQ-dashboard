@@ -19,7 +19,8 @@ if (isset($_COOKIE['remember_me'])) {
         $stmt->execute();
     }
     
-    setcookie('remember_me', '', time() - 3600, [
+    setcookie('remember_me', '', [
+        'expires' => time() - 3600,
         'path' => '/',
         'httponly' => true,
         'secure' => true,
