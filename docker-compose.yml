@@ -1,8 +1,9 @@
 services:
   # Web Server (Nginx)
   web:
-    image: nginx:alpine 
+    image: nginx:alpine
     container_name: nginx_web
+    restart: unless-stopped
     ports:
       - "8080:80"
     volumes:
@@ -18,6 +19,7 @@ services:
   php:
     build: .
     container_name: php_app
+    restart: unless-stopped
     volumes:
       - ./src:/var/www/html
     networks:
@@ -27,7 +29,7 @@ services:
   db:
     image: mariadb:latest
     container_name: mariadb_db
-    restart: always
+    restart: unless-stopped
     ports:
       - "3306:3306"
     environment:
@@ -44,6 +46,7 @@ services:
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: pma_admin
+    restart: unless-stopped
     ports:
       - "8082:80"
     environment:
