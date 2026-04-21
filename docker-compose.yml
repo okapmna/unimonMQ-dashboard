@@ -55,6 +55,18 @@ services:
     networks:
       - app-network
 
+  # Background Worker (Node.js) for MQTT Log System
+  mqtt-worker:
+    build: ./mqtt-worker
+    container_name: mqtt_background_worker
+    restart: always
+    env_file:
+      - ./src/.env
+    depends_on:
+      - db
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
