@@ -33,6 +33,39 @@ $broker_port = $device_data['broker_port'];
 
 $topic_sub   = "incubator/" . $device_id . "/data";
 $topic_pub   = "incubator/" . $device_id . "/con";
+
+// Fetch historical data for charts
+$log_sql = "SELECT data, created_at FROM device_logs WHERE device_id = '$device_id' ORDER BY created_at DESC LIMIT 15";
+$log_result = mysqli_query($koneksi, $log_sql);
+$chart_labels = [];
+$chart_temp_avg = [];
+$chart_temp_high = [];
+$chart_temp_low = [];
+$chart_hum_avg = [];
+$chart_hum_high = [];
+$chart_hum_low = [];
+
+while($row = mysqli_fetch_assoc($log_result)) {
+    $data = json_decode($row['data'], true);
+    if(isset($data['temp']['avg'])) {
+        $chart_labels[] = date('H:i', strtotime($row['created_at']));
+        $chart_temp_avg[] = $data['temp']['avg'];
+        $chart_temp_high[] = $data['temp']['high'];
+        $chart_temp_low[] = $data['temp']['low'];
+        
+        $chart_hum_avg[] = $data['hum']['avg'];
+        $chart_hum_high[] = $data['hum']['high'];
+        $chart_hum_low[] = $data['hum']['low'];
+    }
+}
+$chart_labels = array_reverse($chart_labels);
+$chart_temp_avg = array_reverse($chart_temp_avg);
+$chart_temp_high = array_reverse($chart_temp_high);
+$chart_temp_low = array_reverse($chart_temp_low);
+
+$chart_hum_avg = array_reverse($chart_hum_avg);
+$chart_hum_high = array_reverse($chart_hum_high);
+$chart_hum_low = array_reverse($chart_hum_low);
 ?>
 
 <?php
@@ -42,6 +75,7 @@ $base_url = '../../';
 ob_start();
 ?>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         const mqttConfig = {
@@ -199,6 +233,35 @@ include "../../components/header.php";
                 </div>
             </div>
         </div>
+
+        <div class="flex flex-col gap-6 sm:gap-12 mt-6 sm:mt-12">
+            <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xs sm:text-sm font-bold uppercase text-gray-500 tracking-wider">Temperature History</h3>
+                    <div class="flex gap-4 text-[10px] font-bold uppercase tracking-tight">
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#ef4444] rounded-full"></span> High</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#386628] rounded-full"></span> Avg</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#3b82f6] rounded-full"></span> Low</div>
+                    </div>
+                </div>
+                <div class="relative w-full h-64 sm:h-80">
+                    <canvas id="tempChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xs sm:text-sm font-bold uppercase text-gray-500 tracking-wider">Humidity History</h3>
+                    <div class="flex gap-4 text-[10px] font-bold uppercase tracking-tight">
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#f59e0b] rounded-full"></span> High</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#1E88E5] rounded-full"></span> Avg</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#6366f1] rounded-full"></span> Low</div>
+                    </div>
+                </div>
+                <div class="relative w-full h-64 sm:h-80">
+                    <canvas id="humChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -207,7 +270,118 @@ include "../../components/header.php";
         let currentTargetTemp = 37.5;
         let currentTargetHum = 55;
 
-        // --- MQTT.js CONNECTION ---
+        // --- CHART INTERFACE ---
+        const ctxTemp = document.getElementById('tempChart').getContext('2d');
+        const tempChart = new Chart(ctxTemp, {
+            type: 'line',
+            data: {
+                labels: <?= json_encode($chart_labels) ?>,
+                datasets: [
+                    {
+                        label: 'High (°C)',
+                        data: <?= json_encode($chart_temp_high) ?>,
+                        borderColor: '#ef4444',
+                        borderDash: [5, 5],
+                        borderWidth: 1,
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Average (°C)',
+                        data: <?= json_encode($chart_temp_avg) ?>,
+                        borderColor: '#386628',
+                        backgroundColor: 'rgba(56, 102, 40, 0.05)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2
+                    },
+                    {
+                        label: 'Low (°C)',
+                        data: <?= json_encode($chart_temp_low) ?>,
+                        borderColor: '#3b82f6',
+                        borderDash: [5, 5],
+                        borderWidth: 1,
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { display: false } 
+                },
+                scales: {
+                    y: { 
+                        grace: 5,
+                        ticks: { font: { size: 10 } } 
+                    },
+                    x: { ticks: { font: { size: 10 } } }
+                }
+            }
+        });
+
+        const ctxHum = document.getElementById('humChart').getContext('2d');
+        const humChart = new Chart(ctxHum, {
+            type: 'line',
+            data: {
+                labels: <?= json_encode($chart_labels) ?>,
+                datasets: [
+                    {
+                        label: 'High (%)',
+                        data: <?= json_encode($chart_hum_high) ?>,
+                        borderColor: '#f59e0b',
+                        borderDash: [5, 5],
+                        borderWidth: 1,
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Average (%)',
+                        data: <?= json_encode($chart_hum_avg) ?>,
+                        borderColor: '#1E88E5',
+                        backgroundColor: 'rgba(30, 136, 229, 0.05)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2
+                    },
+                    {
+                        label: 'Low (%)',
+                        data: <?= json_encode($chart_hum_low) ?>,
+                        borderColor: '#6366f1',
+                        borderDash: [5, 5],
+                        borderWidth: 1,
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { display: false } 
+                },
+                scales: {
+                    y: { 
+                        grace: 5,
+                        ticks: { font: { size: 10 } } 
+                    },
+                    x: { ticks: { font: { size: 10 } } }
+                }
+            }
+        });
+        
+        let lastChartUpdate = Date.now();
+
+        // MQTT.js CONNECTION
         const protocol = mqttConfig.useSSL ? 'wss' : 'ws';
         const brokerUrl = `${protocol}://${mqttConfig.host}:${mqttConfig.port}/mqtt`;
         const clientOptions = {
@@ -259,6 +433,38 @@ include "../../components/header.php";
                     currentTargetHum = parseFloat(data.target_hum || data.t_hum);
                     document.getElementById('target-hum').innerText = Math.round(currentTargetHum) + '%';
                 }
+
+                // Append live data to chart every 1 minute
+                if (Date.now() - lastChartUpdate >= 60000 && data.temperature !== undefined && data.humidity !== undefined) {
+                    const timeNow = new Date().toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute:'2-digit'});
+                    const liveTemp = parseFloat(data.temperature).toFixed(2);
+                    const liveHum = parseFloat(data.humidity).toFixed(2);
+                    
+                    // Update Temp Chart (Add current live data to all lines for realism)
+                    tempChart.data.labels.push(timeNow);
+                    tempChart.data.datasets[0].data.push(liveTemp); // High
+                    tempChart.data.datasets[1].data.push(liveTemp); // Avg
+                    tempChart.data.datasets[2].data.push(liveTemp); // Low
+                    if(tempChart.data.labels.length > 15) { 
+                        tempChart.data.labels.shift(); 
+                        tempChart.data.datasets.forEach(ds => ds.data.shift());
+                    }
+                    tempChart.update('none');
+
+                    // Update Hum Chart
+                    humChart.data.labels.push(timeNow);
+                    humChart.data.datasets[0].data.push(liveHum); // High
+                    humChart.data.datasets[1].data.push(liveHum); // Avg
+                    humChart.data.datasets[2].data.push(liveHum); // Low
+                    if(humChart.data.labels.length > 15) { 
+                        humChart.data.labels.shift(); 
+                        humChart.data.datasets.forEach(ds => ds.data.shift());
+                    }
+                    humChart.update('none');
+
+                    lastChartUpdate = Date.now();
+                }
+
             } catch (e) { console.warn('Parsing Error:', e); }
         });
 
