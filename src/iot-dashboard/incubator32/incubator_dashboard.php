@@ -48,7 +48,7 @@ $chart_hum_low = [];
 while($row = mysqli_fetch_assoc($log_result)) {
     $data = json_decode($row['data'], true);
     if(isset($data['temp']['avg'])) {
-        $chart_labels[] = date('H:i', strtotime($row['created_at']));
+        $chart_labels[] = $row['created_at'];
         $chart_temp_avg[] = $data['temp']['avg'];
         $chart_temp_high[] = $data['temp']['high'];
         $chart_temp_low[] = $data['temp']['low'];
@@ -275,7 +275,7 @@ include "../../components/header.php";
         const tempChart = new Chart(ctxTemp, {
             type: 'line',
             data: {
-                labels: <?= json_encode($chart_labels) ?>,
+                labels: <?= json_encode($chart_labels) ?>.map(t => new Date(t + " UTC").toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})),
                 datasets: [
                     {
                         label: 'High (°C)',
@@ -329,7 +329,7 @@ include "../../components/header.php";
         const humChart = new Chart(ctxHum, {
             type: 'line',
             data: {
-                labels: <?= json_encode($chart_labels) ?>,
+                labels: <?= json_encode($chart_labels) ?>.map(t => new Date(t + " UTC").toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})),
                 datasets: [
                     {
                         label: 'High (%)',
