@@ -23,7 +23,7 @@ if (!isset($_SESSION['username']) && isset($_COOKIE['remember_me'])) {
     if (strpos($_COOKIE['remember_me'], ':') !== false) {
         list($selector, $validator) = explode(':', $_COOKIE['remember_me']);
 
-    $stmt = $koneksi->prepare("SELECT ut.user_id, ut.hashed_validator, u.user_name FROM user_tokens ut JOIN user u ON ut.user_id = u.user_id WHERE ut.selector = ? AND ut.expiry > NOW() LIMIT 1");
+    $stmt = $koneksi->prepare("SELECT ut.user_id, ut.hashed_validator, u.user_name, u.role FROM user_tokens ut JOIN user u ON ut.user_id = u.user_id WHERE ut.selector = ? AND ut.expiry > NOW() LIMIT 1");
     if ($stmt) {
         $stmt->bind_param("s", $selector);
         $stmt->execute();
@@ -34,6 +34,7 @@ if (!isset($_SESSION['username']) && isset($_COOKIE['remember_me'])) {
             if (password_verify($validator, $token_data['hashed_validator'])) {
                 $_SESSION['user_id'] = $token_data['user_id'];
                 $_SESSION['username'] = $token_data['user_name'];
+                $_SESSION['role'] = $token_data['role'] ?? 'user';
                 header("Location: dashboard.php");
                 exit;
             }
@@ -48,7 +49,7 @@ if (isset($_POST['login'])) {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    $stmt = $koneksi->prepare("SELECT user_id, user_name, password FROM user WHERE user_name = ? LIMIT 1");
+    $stmt = $koneksi->prepare("SELECT user_id, user_name, password, role FROM user WHERE user_name = ? LIMIT 1");
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -60,6 +61,7 @@ if (isset($_POST['login'])) {
         if (password_verify($password, $data['password'])) {
             $_SESSION['user_id'] = $data['user_id'];
             $_SESSION['username'] = $data['user_name'];
+            $_SESSION['role'] = $data['role'] ?? 'user';
 
             // Remember Me
             if (isset($_POST['remember'])) {

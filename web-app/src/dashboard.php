@@ -102,11 +102,15 @@ if (isset($_POST['btn_hapus_pintar'])) {
     }
 }
 
-// Fetch devices
-$sql_fetch = "SELECT d.* FROM device d 
-              JOIN user u ON d.user_id = u.user_id 
-              WHERE u.user_name = '$username' 
-              ORDER BY d.device_id DESC";
+// Fetch devices (Owned + Shared)
+$user_id = $_SESSION['user_id'];
+$sql_fetch = "SELECT d.*, 'owner' as access_type FROM device d 
+              WHERE d.user_id = '$user_id'
+              UNION
+              SELECT d.*, uda.access_type FROM device d
+              JOIN user_device_access uda ON d.device_id = uda.device_id
+              WHERE uda.user_id = '$user_id'
+              ORDER BY device_id DESC";
 $devices = mysqli_query($koneksi, $sql_fetch);
 ?>
 
@@ -123,6 +127,15 @@ include "components/header.php";
             <p class="text-sm text-muted-text font-medium">Welcome, <?= htmlspecialchars($username) ?></p>
         </div>
         <div class="flex items-center gap-4">
+            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                <a href="admin/index.php" class="bg-accent-green/10 hover:bg-accent-green text-accent-green hover:text-white px-4 py-2 rounded-xl font-bold transition flex items-center gap-2 text-sm shadow-sm border border-accent-green/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Admin Panel
+                </a>
+            <?php endif; ?>
             <a href="profile.php" class="bg-gray-100/50 hover:bg-card-white text-muted-text hover:text-dark-text px-4 py-2 rounded-xl font-bold transition flex items-center gap-2 text-sm shadow-sm border border-transparent hover:border-gray-200">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-accent-brown" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -144,6 +157,12 @@ include "components/header.php";
                     <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                 </svg>
                 New Device
+            </button>
+            <button onclick="openRedeemModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-base font-semibold shadow-lg shadow-blue-900/10 transition transform hover:-translate-y-0.5 flex items-center gap-1.5 sm:gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m-2-2v2m-2-2a2 2 0 00-2 2m2-2h-2m0 0a2 2 0 00-2 2m2-2v2m2 4a2 2 0 012 2m-2-2v2m-2-2a2 2 0 00-2 2m2-2h-2m0 0a2 2 0 00-2 2m2-2v2M5 18v-1a6 6 0 016-6h2a6 6 0 016 6v1M7 11V9a2 2 0 012-2h2a2 2 0 012 2v2M5 9V7a2 2 0 012-2h2a2 2 0 012 2v2" />
+                </svg>
+                Redeem Token
             </button>
         </div>
 
@@ -173,11 +192,20 @@ include "components/header.php";
                         $current_icon = $icon_lamp;
                         $badge_color = 'bg-blue-50 text-accent-blue border border-accent-blue/20';
                     }
+                    
+                    $access_label = strtoupper($device['access_type']);
+                    $access_badge_class = $device['access_type'] === 'owner' ? 'bg-accent-green text-white' : 'bg-blue-600 text-white';
                     ?>
 
                     <div class="group relative bg-card-white rounded-3xl p-4 sm:p-6 md:p-8 shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-200/80 transition-all duration-300 border border-transparent hover:border-accent-green/20 transform hover:-translate-y-1">
+                        
+                        <!-- Access Badge -->
+                        <div class="absolute top-4 left-4 z-10">
+                             <span class="<?= $access_badge_class ?> px-2 py-0.5 rounded-lg text-[8px] font-bold tracking-wider"><?= $access_label ?></span>
+                        </div>
 
                         <div class="absolute top-3 right-3 sm:top-6 sm:right-6 z-20">
+                            <?php if ($device['access_type'] === 'owner' || (isset($_SESSION['role']) && $_SESSION['role'] === 'admin')): ?>
                             <button type="button" onclick="toggleDeviceMenu(event, 'menu-<?= $id_val ?>')" class="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-dark-text hover:bg-gray-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent-green/50" aria-label="Device Options">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                                     <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -202,6 +230,16 @@ include "components/header.php";
                                     </button>
                                 </form>
                             </div>
+                            <?php else: ?>
+                            <form method="POST" action="actions/remove_shared.php" onsubmit="return confirm('Remove shared device: <?= htmlspecialchars($displayName) ?>?');">
+                                <input type="hidden" name="device_id" value="<?= $id_val ?>">
+                                <button type="submit" class="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Remove Shared Device">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </form>
+                            <?php endif; ?>
                         </div>
 
                         <a href="<?= $link ?>" class="block h-full flex flex-col justify-between">
@@ -351,6 +389,30 @@ include "components/header.php";
         </div>
     </div>
 
+    <div id="redeemModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onclick="closeRedeemModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-gray-100">
+                <div class="bg-white px-8 py-8">
+                    <div class="mb-6">
+                        <h3 class="text-2xl font-bold leading-6 text-gray-900">Redeem Access Token</h3>
+                        <p class="mt-2 text-sm text-gray-500">Paste the token provided by an admin to gain access to a device.</p>
+                    </div>
+                    <form action="actions/redeem_token.php" method="post" class="space-y-5">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Token Code</label>
+                            <input type="text" name="token_code" class="block w-full rounded-xl border-gray-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-3 px-4 bg-gray-50 font-mono" placeholder="e.g. AB12CD34" required>
+                        </div>
+                        <div class="pt-4 flex flex-col gap-3">
+                            <button type="submit" name="redeem" class="w-full justify-center rounded-xl bg-blue-600 px-3 py-3.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 transition-all">Redeem Now</button>
+                            <button type="button" onclick="closeRedeemModal()" class="w-full justify-center rounded-xl bg-white px-3 py-3.5 text-sm font-bold text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-all">Batal</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Modal Add
         function openModal() {
@@ -359,6 +421,15 @@ include "components/header.php";
 
         function closeModal() {
             document.getElementById('deviceModal').classList.add('hidden');
+        }
+
+        // Modal Redeem
+        function openRedeemModal() {
+            document.getElementById('redeemModal').classList.remove('hidden');
+        }
+
+        function closeRedeemModal() {
+            document.getElementById('redeemModal').classList.add('hidden');
         }
 
         // Modal Edit
@@ -383,6 +454,7 @@ include "components/header.php";
             if (evt.keyCode == 27) {
                 closeModal();
                 closeEditModal();
+                closeRedeemModal();
                 closeAllDeviceMenus();
             }
         };

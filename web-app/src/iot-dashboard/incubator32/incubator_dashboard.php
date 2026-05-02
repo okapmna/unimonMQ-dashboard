@@ -12,19 +12,25 @@ if (!isset($_GET['device_id'])) {
 }
 
 include "../../config/koneksi.php"; 
-$username = $_SESSION['username'];
+$user_id = $_SESSION['user_id'];
 $device_id = mysqli_real_escape_string($koneksi, $_GET['device_id']);
 
-$sql = "SELECT d.* FROM device d 
-        JOIN user u ON d.user_id = u.user_id 
-        WHERE d.device_id = '$device_id' AND u.user_name = '$username'";
-$result = mysqli_query($koneksi, $sql);
-$device_data = mysqli_fetch_assoc($result);
+// Check access (Owner OR Viewer)
+$sql_access = "SELECT d.*, 'owner' as access_type FROM device d WHERE d.device_id = '$device_id' AND d.user_id = '$user_id'
+               UNION
+               SELECT d.*, uda.access_type FROM device d
+               JOIN user_device_access uda ON d.device_id = uda.device_id
+               WHERE d.device_id = '$device_id' AND uda.user_id = '$user_id'";
+$res_access = mysqli_query($koneksi, $sql_access);
+$device_data = mysqli_fetch_assoc($res_access);
 
 if (!$device_data) {
     echo "<script>alert('Akses ditolak!'); window.location='../../dashboard.php';</script>";
     exit;
 }
+
+$access_type = $device_data['access_type'];
+$is_viewer = ($access_type === 'viewer');
 
 $broker_host = $device_data['broker_url']; 
 $mq_user     = $device_data['mq_user'];
@@ -33,10 +39,14 @@ $broker_port = $device_data['broker_port'];
 
 $topic_sub   = "incubator/" . $device_id . "/data";
 $topic_pub   = "incubator/" . $device_id . "/con";
-
 // Fetch historical data for charts
-$log_sql = "SELECT data, created_at FROM device_logs WHERE device_id = '$device_id' ORDER BY created_at DESC LIMIT 15";
+$log_sql = "SELECT data, created_at FROM device_logs WHERE device_id = '$device_id' AND log_type = 'aggregation' ORDER BY created_at DESC LIMIT 15";
 $log_result = mysqli_query($koneksi, $log_sql);
+
+// Fetch Significant Events (Spikes)
+$spike_sql = "SELECT data, created_at FROM device_logs WHERE device_id = '$device_id' AND log_type = 'change_event' ORDER BY created_at DESC LIMIT 10";
+$spike_result = mysqli_query($koneksi, $spike_sql);
+?>
 $chart_labels = [];
 $chart_temp_avg = [];
 $chart_temp_high = [];
@@ -175,15 +185,17 @@ include "../../components/header.php";
                 </select>
                 <!-- Custom Dropdown -->
                 <div class="batch-dropdown" id="batch-dropdown">
-                    <button onclick="toggleBatchDropdown(event)" id="batch-dropdown-btn" class="bg-[#C69C6D] text-black font-semibold px-5 py-2 rounded-full shadow-sm text-xs sm:text-sm flex items-center gap-2 hover:bg-[#b8885a] transition-colors duration-200">
+                    <button onclick="toggleBatchDropdown(event)" id="batch-dropdown-btn" class="bg-[#C69C6D] text-black font-semibold px-5 py-2 rounded-full shadow-sm text-xs sm:text-sm flex items-center gap-2 hover:bg-[#b8885a] transition-colors duration-200 <?= $is_viewer ? 'opacity-50 cursor-not-allowed' : '' ?>" <?= $is_viewer ? 'disabled' : '' ?>>
                         <span id="batch-dropdown-label">Chicken (Ayam)</span>
                         <svg id="batch-dropdown-arrow" class="w-3.5 h-3.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </button>
+                    <?php if (!$is_viewer): ?>
                     <div class="batch-dropdown-menu" id="batch-dropdown-menu">
                         <button onclick="selectBatch('chicken', 'Chicken (Ayam)')" class="active">Chicken (Ayam)</button>
                         <button onclick="selectBatch('duck', 'Duck (Bebek)')">Duck (Bebek)</button>
                         <button onclick="selectBatch('quail', 'Quail (Puyuh)')">Quail (Puyuh)</button>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </header>
@@ -201,10 +213,12 @@ include "../../components/header.php";
                             <p class="text-[8px] sm:text-[0.65rem] font-bold uppercase mb-0.5 sm:mb-1">TARGET</p>
                             <p id="target-temp" class="text-sm sm:text-xl font-bold">37.5 °C</p>
                         </div>
+                        <?php if (!$is_viewer): ?>
                         <div class="flex gap-1.5 sm:gap-2">
                             <button onclick="updateTarget('temp', -0.1)" class="w-6 h-6 sm:w-8 sm:h-8 rounded bg-[#386628] text-white flex items-center justify-center font-bold text-sm">-</button>
                             <button onclick="updateTarget('temp', 0.1)" class="w-6 h-6 sm:w-8 sm:h-8 rounded bg-[#386628] text-white flex items-center justify-center font-bold text-sm">+</button>
                         </div>
+                        <?php endif; ?>
                     </div>
                     <div class="h-px bg-gray-200 my-1.5 sm:my-2 hidden sm:block"></div>
                     <p id="info-optimal-temp" class="text-[0.60rem] sm:text-[0.65rem] font-semibold hidden sm:block">Optimal: 37.2°C - 37.8°C</p>
@@ -223,10 +237,12 @@ include "../../components/header.php";
                             <p class="text-[8px] sm:text-[0.65rem] font-bold uppercase mb-0.5 sm:mb-1">TARGET</p>
                             <p id="target-hum" class="text-sm sm:text-xl font-bold">55%</p>
                         </div>
+                        <?php if (!$is_viewer): ?>
                         <div class="flex gap-1.5 sm:gap-2">
                             <button onclick="updateTarget('hum', -1)" class="w-6 h-6 sm:w-8 sm:h-8 rounded bg-[#1E88E5] text-white flex items-center justify-center font-bold text-sm">-</button>
                             <button onclick="updateTarget('hum', 1)" class="w-6 h-6 sm:w-8 sm:h-8 rounded bg-[#1E88E5] text-white flex items-center justify-center font-bold text-sm">+</button>
                         </div>
+                        <?php endif; ?>
                     </div>
                     <div class="h-px bg-gray-200 my-1.5 sm:my-2 hidden sm:block"></div>
                     <p id="info-optimal-hum" class="text-[0.60rem] sm:text-[0.65rem] font-semibold hidden sm:block">Optimal: 55%-60%</p>
@@ -250,15 +266,37 @@ include "../../components/header.php";
             </div>
             <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xs sm:text-sm font-bold uppercase text-gray-500 tracking-wider">Humidity History</h3>
-                    <div class="flex gap-4 text-[10px] font-bold uppercase tracking-tight">
-                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#f59e0b] rounded-full"></span> High</div>
-                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#1E88E5] rounded-full"></span> Avg</div>
-                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#6366f1] rounded-full"></span> Low</div>
-                    </div>
+                    <h3 class="text-xs sm:text-sm font-bold uppercase text-gray-500 tracking-wider">Significant Events (Spikes)</h3>
                 </div>
-                <div class="relative w-full h-64 sm:h-80">
-                    <canvas id="humChart"></canvas>
+                <div class="space-y-4">
+                    <?php if (mysqli_num_rows($spike_result) > 0): ?>
+                        <?php while ($spike = mysqli_fetch_assoc($spike_result)): ?>
+                            <?php $s_data = json_decode($spike['data'], true); ?>
+                            <div class="flex items-center gap-4 p-4 bg-red-50 rounded-2xl border border-red-100">
+                                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold text-red-900">Change Detected</p>
+                                    <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                        <?php foreach ($s_data['changes'] as $change): ?>
+                                            <span class="text-[10px] font-semibold uppercase text-red-600">
+                                                <?= $change['sensor'] ?>: <?= $change['previous'] ?> → <?= $change['new'] ?> (Δ <?= ($change['delta'] > 0 ? '+' : '') . $change['delta'] ?>)
+                                            </span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] font-bold text-gray-400 uppercase"><?= date('H:i', strtotime($spike['created_at'])) ?></p>
+                                    <p class="text-[8px] font-medium text-gray-300 uppercase"><?= date('d M', strtotime($spike['created_at'])) ?></p>
+                                </div>
+                            </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <p class="text-center py-6 text-gray-400 text-sm italic">No significant changes detected recently.</p>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
