@@ -7,8 +7,8 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./src:/var/www/html
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./web-app/src:/var/www/html
+      - ./web-app/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - php
       - db
@@ -17,11 +17,11 @@ services:
 
   # PHP Service
   php:
-    build: .
+    build: ./web-app
     container_name: php_app
     restart: unless-stopped
     volumes:
-      - ./src:/var/www/html
+      - ./web-app/src:/var/www/html
     networks:
       - app-network
 
@@ -64,7 +64,7 @@ services:
     container_name: mqtt_background_worker
     restart: always
     env_file:
-      - ./src/.env
+      - ./web-app/src/.env
     depends_on:
       - db
     networks:
