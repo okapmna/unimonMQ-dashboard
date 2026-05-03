@@ -13,13 +13,20 @@ if (!isset($_GET['device_id'])) {
 }
 
 include "../../config/koneksi.php"; 
-$username = $_SESSION['username'];
+$user_id = $_SESSION['user_id'];
 $device_id = mysqli_real_escape_string($koneksi, $_GET['device_id']);
 
-// 3. Ambil Data Device (Validasi kepemilikan)
-$sql = "SELECT d.* FROM device d 
-        JOIN user u ON d.user_id = u.user_id 
-        WHERE d.device_id = '$device_id' AND u.user_name = '$username'";
+// 3. Ambil Data Device (Validasi kepemilikan / Shared Access / Admin)
+if ($_SESSION['role'] === 'admin') {
+    $sql = "SELECT d.*, 'owner' as access_type FROM device d WHERE d.device_id = '$device_id'";
+} else {
+    $sql = "SELECT d.*, 'owner' as access_type FROM device d WHERE d.device_id = '$device_id' AND d.user_id = '$user_id'
+            UNION
+            SELECT d.*, uda.access_type FROM device d
+            JOIN user_device_access uda ON d.device_id = uda.device_id
+            WHERE d.device_id = '$device_id' AND uda.user_id = '$user_id'";
+}
+
 $result = mysqli_query($koneksi, $sql);
 $device_data = mysqli_fetch_assoc($result);
 
@@ -27,6 +34,9 @@ if (!$device_data) {
     echo "<script>alert('Device tidak ditemukan atau Anda tidak memiliki akses!'); window.location='../../dashboard.php';</script>";
     exit;
 }
+
+$access_type = $device_data['access_type'];
+$is_viewer = ($access_type === 'viewer');
 
 // 4. Konfigurasi Broker
 $broker_host = $device_data['broker_url']; 

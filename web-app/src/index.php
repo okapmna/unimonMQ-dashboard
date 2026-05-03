@@ -14,7 +14,11 @@ include "config/koneksi.php";
 
 // redirect to dashboard if already logged in
 if (isset($_SESSION['username'])) {
-    header("Location: dashboard.php");
+    if ($_SESSION['role'] === 'admin') {
+        header("Location: admin/index.php");
+    } else {
+        header("Location: dashboard.php");
+    }
     exit;
 }
 
@@ -35,7 +39,12 @@ if (!isset($_SESSION['username']) && isset($_COOKIE['remember_me'])) {
                 $_SESSION['user_id'] = $token_data['user_id'];
                 $_SESSION['username'] = $token_data['user_name'];
                 $_SESSION['role'] = $token_data['role'] ?? 'user';
-                header("Location: dashboard.php");
+                
+                if ($_SESSION['role'] === 'admin') {
+                    header("Location: admin/index.php");
+                } else {
+                    header("Location: dashboard.php");
+                }
                 exit;
             }
         }
@@ -91,7 +100,11 @@ if (isset($_POST['login'])) {
                 ]);
             }
             
-            header("Location: dashboard.php");
+            if ($_SESSION['role'] === 'admin') {
+                header("Location: admin/index.php");
+            } else {
+                header("Location: dashboard.php");
+            }
             exit;
         } else {
             $error = "Username and password do not match";

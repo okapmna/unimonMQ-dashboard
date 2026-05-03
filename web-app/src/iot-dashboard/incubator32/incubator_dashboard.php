@@ -16,11 +16,15 @@ $user_id = $_SESSION['user_id'];
 $device_id = mysqli_real_escape_string($koneksi, $_GET['device_id']);
 
 // Check access (Owner OR Viewer)
-$sql_access = "SELECT d.*, 'owner' as access_type FROM device d WHERE d.device_id = '$device_id' AND d.user_id = '$user_id'
-               UNION
-               SELECT d.*, uda.access_type FROM device d
-               JOIN user_device_access uda ON d.device_id = uda.device_id
-               WHERE d.device_id = '$device_id' AND uda.user_id = '$user_id'";
+if ($_SESSION['role'] === 'admin') {
+    $sql_access = "SELECT d.*, 'owner' as access_type FROM device d WHERE d.device_id = '$device_id'";
+} else {
+    $sql_access = "SELECT d.*, 'owner' as access_type FROM device d WHERE d.device_id = '$device_id' AND d.user_id = '$user_id'
+                   UNION
+                   SELECT d.*, uda.access_type FROM device d
+                   JOIN user_device_access uda ON d.device_id = uda.device_id
+                   WHERE d.device_id = '$device_id' AND uda.user_id = '$user_id'";
+}
 $res_access = mysqli_query($koneksi, $sql_access);
 $device_data = mysqli_fetch_assoc($res_access);
 
@@ -46,7 +50,7 @@ $log_result = mysqli_query($koneksi, $log_sql);
 // Fetch Significant Events (Spikes)
 $spike_sql = "SELECT data, created_at FROM device_logs WHERE device_id = '$device_id' AND log_type = 'change_event' ORDER BY created_at DESC LIMIT 10";
 $spike_result = mysqli_query($koneksi, $spike_sql);
-?>
+
 $chart_labels = [];
 $chart_temp_avg = [];
 $chart_temp_high = [];
@@ -262,6 +266,19 @@ include "../../components/header.php";
                 </div>
                 <div class="relative w-full h-64 sm:h-80">
                     <canvas id="tempChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xs sm:text-sm font-bold uppercase text-gray-500 tracking-wider">Humidity History</h3>
+                    <div class="flex gap-4 text-[10px] font-bold uppercase tracking-tight">
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#f59e0b] rounded-full"></span> High</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#1E88E5] rounded-full"></span> Avg</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#6366f1] rounded-full"></span> Low</div>
+                    </div>
+                </div>
+                <div class="relative w-full h-64 sm:h-80">
+                    <canvas id="humChart"></canvas>
                 </div>
             </div>
             <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300">

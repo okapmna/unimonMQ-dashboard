@@ -14,6 +14,11 @@ if (!isset($_SESSION['username'])) {
     exit;
 }
 
+if ($_SESSION['role'] === 'admin') {
+    header("Location: admin/index.php");
+    exit;
+}
+
 include "config/koneksi.php";
 $username = $_SESSION['username'];
 
