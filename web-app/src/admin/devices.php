@@ -3,7 +3,16 @@ include "auth_check.php";
 include "../config/koneksi.php";
 
 $username = $_SESSION['username'];
-$admin_id = $_SESSION['user_id'];
+$admin_id = $_SESSION['user_id'] ?? null;
+if (!$admin_id) {
+    $safe_username = mysqli_real_escape_string($koneksi, $username);
+    $admin_result = mysqli_query($koneksi, "SELECT user_id FROM user WHERE user_name = '$safe_username' LIMIT 1");
+    $admin = $admin_result ? mysqli_fetch_assoc($admin_result) : null;
+    $admin_id = $admin['user_id'] ?? null;
+    if ($admin_id) {
+        $_SESSION['user_id'] = $admin_id;
+    }
+}
 
 function generateDeviceAccessToken($koneksi, $device_id, $admin_id, $max_uses = 1, $expires_at = "NULL") {
     do {
@@ -30,6 +39,10 @@ function insertAdminAuditLog($koneksi, $admin_id, $action, $target_type, $target
     mysqli_query($koneksi, "INSERT INTO admin_audit_log (admin_id, action, target_type, target_id, details) VALUES ('$safe_admin_id', '$safe_action', '$safe_target_type', '$safe_target_id', '$safe_details')");
 }
 
+function htmlJson($value) {
+    return htmlspecialchars(json_encode($value, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
+}
+
 // Handle Add Device
 if (isset($_POST['add_device'])) {
     $id_pemilik = mysqli_real_escape_string($koneksi, $_POST['owner_id']);
@@ -50,7 +63,7 @@ if (isset($_POST['add_device'])) {
             insertAdminAuditLog($koneksi, $admin_id, 'add_device', 'device', $new_id, ['name' => $dev_name, 'token' => $token_code]);
             $_SESSION['toast'] = ['type' => 'success', 'message' => "Device added. Device code: $token_code"];
         } else {
-            $_SESSION['toast'] = ['type' => 'warning', 'message' => 'Device added, but failed to generate device code.'];
+            $_SESSION['toast'] = ['type' => 'error', 'message' => 'Device added, but failed to generate device code: ' . mysqli_error($koneksi)];
         }
     } else {
         $_SESSION['toast'] = ['type' => 'error', 'message' => 'Failed to add device: ' . mysqli_error($koneksi)];
@@ -199,7 +212,7 @@ include "../components/header.php";
         </div>
 
         <div class="flex gap-4">
-            <button onclick="openAddDeviceModal()" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-900/10 transition hover:bg-blue-700">Add Device</button>
+            <button type="button" onclick="openAddDeviceModal()" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-900/10 transition hover:bg-blue-700">Add Device</button>
             <a href="users.php" class="bg-white text-gray-600 hover:text-accent-green px-6 py-2.5 rounded-xl font-bold border border-gray-200 transition">Users</a>
             <a href="devices.php" class="bg-accent-green text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-green-900/10 transition">Devices</a>
         </div>
@@ -251,16 +264,16 @@ include "../components/header.php";
                             </td>
                             <td class="px-6 py-4 text-right space-x-1">
                                 <div class="flex justify-end gap-1">
-                                    <button onclick='openTokenModal(<?= $device['device_id'] ?>, <?= htmlspecialchars(json_encode($device['device_name']), ENT_QUOTES, 'UTF-8') ?>)'
+                                    <button type="button" data-device-id="<?= $device['device_id'] ?>" data-device-name="<?= htmlspecialchars($device['device_name'], ENT_QUOTES, 'UTF-8') ?>" onclick="openTokenModal(this)"
                                         class="bg-accent-green/10 text-accent-green hover:bg-accent-green hover:text-white px-2 py-1 rounded-lg text-[10px] font-bold transition">Code</button>
-                                    <button onclick='openEditDeviceModal(<?= htmlspecialchars(json_encode($device), ENT_QUOTES, 'UTF-8') ?>)'
+                                    <button type="button" data-device='<?= htmlJson($device) ?>' onclick="openEditDeviceModal(this)"
                                         class="bg-blue-600/10 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded-lg text-[10px] font-bold transition">Edit</button>
                                     <form method="POST" onsubmit="return confirm('Delete this device permanently?');" class="inline">
                                         <input type="hidden" name="device_id" value="<?= $device['device_id'] ?>">
                                         <button type="submit" name="delete_device" class="bg-red-600/10 text-red-600 hover:bg-red-600 hover:text-white px-2 py-1 rounded-lg text-[10px] font-bold transition">Del</button>
                                     </form>
                                 </div>
-                                <button onclick="viewTokens(<?= $device['device_id'] ?>)"
+                                <button type="button" onclick="viewTokens(<?= $device['device_id'] ?>)"
                                     class="text-[10px] font-bold text-gray-400 hover:underline mt-1 block w-full text-right">View Codes</button>
                             </td>
                         </tr>
@@ -427,7 +440,7 @@ include "../components/header.php";
                 <!-- Populated via JS/PHP -->
             </div>
             <div class="mt-8 text-right">
-                <button onclick="closeViewTokensModal()" class="bg-gray-100 text-gray-600 font-bold px-6 py-2 rounded-xl hover:bg-gray-200 transition">Close</button>
+                <button type="button" onclick="closeViewTokensModal()" class="bg-gray-100 text-gray-600 font-bold px-6 py-2 rounded-xl hover:bg-gray-200 transition">Close</button>
             </div>
         </div>
     </div>
@@ -441,22 +454,25 @@ include "../components/header.php";
         document.getElementById('addDeviceModal').classList.add('hidden');
     }
 
-    function openEditDeviceModal(d) {
+    function openEditDeviceModal(button) {
+        const d = JSON.parse(button.dataset.device);
         document.getElementById('edit_device_id').value = d.device_id;
-        document.getElementById('edit_device_name').value = d.device_name;
-        document.getElementById('edit_device_type').value = d.device_type;
+        document.getElementById('edit_device_name').value = d.device_name || '';
+        document.getElementById('edit_device_type').value = d.device_type || '';
         document.getElementById('edit_owner_id').value = d.user_id;
-        document.getElementById('edit_broker_url').value = d.broker_url;
-        document.getElementById('edit_broker_port').value = d.broker_port;
-        document.getElementById('edit_mq_user').value = d.mq_user;
-        document.getElementById('edit_mq_pass').value = d.mq_pass;
+        document.getElementById('edit_broker_url').value = d.broker_url || '';
+        document.getElementById('edit_broker_port').value = d.broker_port || '';
+        document.getElementById('edit_mq_user').value = d.mq_user || '';
+        document.getElementById('edit_mq_pass').value = d.mq_pass || '';
         document.getElementById('editDeviceModal').classList.remove('hidden');
     }
     function closeEditDeviceModal() {
         document.getElementById('editDeviceModal').classList.add('hidden');
     }
 
-    function openTokenModal(id, name) {
+    function openTokenModal(button) {
+        const id = button.dataset.deviceId;
+        const name = button.dataset.deviceName;
         document.getElementById('tokenModalDeviceId').value = id;
         document.getElementById('tokenModalDevice').innerText = "Generating device code for: " + name;
         document.getElementById('tokenModal').classList.remove('hidden');
