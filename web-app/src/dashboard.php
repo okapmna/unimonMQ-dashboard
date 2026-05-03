@@ -107,16 +107,9 @@ include "components/header.php";
                         $badge_color = 'bg-blue-50 text-accent-blue border border-accent-blue/20';
                     }
 
-                    $access_label = strtoupper($device['access_type']);
-                    $access_badge_class = $device['access_type'] === 'owner' ? 'bg-accent-green text-white' : 'bg-blue-600 text-white';
                     ?>
 
                     <div class="group relative bg-card-white rounded-3xl p-4 sm:p-6 md:p-8 shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-200/80 transition-all duration-300 border border-transparent hover:border-accent-green/20 transform hover:-translate-y-1">
-
-                        <!-- Access Badge -->
-                        <div class="absolute top-4 left-4 z-10">
-                             <span class="<?= $access_badge_class ?> px-2 py-0.5 rounded-lg text-[8px] font-bold tracking-wider"><?= $access_label ?></span>
-                        </div>
 
                         <div class="absolute top-3 right-3 sm:top-6 sm:right-6 z-20">
                             <?php if ($device['access_type'] !== 'owner'): ?>
@@ -144,19 +137,7 @@ include "components/header.php";
                                 <h3 class="text-base sm:text-2xl md:text-3xl font-bold text-dark-text mb-1 pr-4 sm:pr-8 group-hover:text-accent-green transition-colors line-clamp-2">
                                     <?= htmlspecialchars($displayName) ?>
                                 </h3>
-                                <div class="mt-2 sm:mt-6 pt-2 sm:pt-6 border-t border-gray-100">
-                                    <div class="hidden sm:block">
-                                        <p class="text-xs font-semibold text-muted-text uppercase mb-1">Broker Config</p>
-                                        <p class="text-sm text-dark-text font-medium truncate">
-                                            <?= !empty($device['broker_url']) ? htmlspecialchars($device['broker_url']) : '-' ?>
-                                        </p>
-                                    </div>
-                                    <!-- Invisible placeholder to maintain card height on mobile -->
-                                    <div class="sm:hidden invisible" aria-hidden="true">
-                                        <p class="text-[9px] font-semibold uppercase mb-0.5">&nbsp;</p>
-                                        <p class="text-[10px] font-medium">&nbsp;</p>
-                                    </div>
-                                </div>
+                                <div class="mt-3 sm:mt-6 pt-3 sm:pt-6 border-t border-gray-100"></div>
                             </div>
                             <div class="mt-2 sm:mt-4 text-right">
                                 <span class="text-[8px] sm:text-[10px] text-gray-300 font-mono line-clamp-1">ID: <?= $id_val ?></span>
