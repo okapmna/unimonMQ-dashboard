@@ -5,7 +5,7 @@ services:
     container_name: unimon_app
     restart: always
     ports:
-      - "8080:8080"
+      - "8180:8080"
     env_file:
       - ./app/.env
     depends_on:
@@ -20,7 +20,7 @@ services:
     container_name: mariadb_db
     restart: unless-stopped
     ports:
-      - "3306:3306"
+      - "3316:3306"
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: unimq

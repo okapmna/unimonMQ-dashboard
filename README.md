@@ -25,10 +25,17 @@ cp app/.env.example app/.env
 *Make sure the database configuration in `.env` matches the one in `docker-compose.yml`.*
 
 ### 3. Run Containers
-Build and start all services (Express App, MariaDB, and phpMyAdmin):
+
+Development (hot reload for backend, sync for views/static files):
 ```bash
-docker compose up -d --build
+docker compose watch
 ```
+
+Production:
+```bash
+docker compose -f docker-compose.yml up -d --build
+```
+Use the explicit `-f docker-compose.yml` in production so `docker-compose.override.yml` (development mode) is not loaded.
 
 ### 4. Database Initialization
 1. Open **phpMyAdmin** at `http://localhost:8082`.
@@ -38,7 +45,7 @@ docker compose up -d --build
 
 ### 5. Access the App
 Open your browser and navigate to:
-`http://localhost:8080`
+`http://localhost:8180`
 
 ## Monitoring Logs and Background Worker
 To view the application and MQTT worker activity in real-time, use the following command:

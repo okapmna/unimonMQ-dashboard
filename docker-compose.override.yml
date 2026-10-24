@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: ./app
+      target: development
+    command: npm run dev
+    restart: "no"
+    develop:
+      watch:
+        - action: rebuild
+          path: ./app/package.json
+        - action: rebuild
+          path: ./app/package-lock.json
+        - action: rebuild
+          path: ./app/Dockerfile
+        - action: rebuild
+          path: ./app/.dockerignore
+        - action: sync
+          path: ./app
+          target: /usr/src/app
+          ignore:
+            - node_modules/
+            - .env
