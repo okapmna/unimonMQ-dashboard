@@ -6,6 +6,9 @@ services:
     restart: always
     ports:
       - "8180:8080"
+    volumes:
+      - ./app:/usr/src/app
+      - /usr/src/app/node_modules
     env_file:
       - ./app/.env
     depends_on:

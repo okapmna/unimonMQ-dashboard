@@ -5,3 +5,5 @@ backup*.sql
 *.env
 node_modules/
 dashboard_plan.md
+# Uploaded camera captures
+app/public/uploads/
