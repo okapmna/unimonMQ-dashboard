@@ -15,14 +15,17 @@ const server = http.createServer(app);
 const io = new Server(server);
 const PORT = process.env.PORT || 8080;
 
+app.set('io', io);
+
 // View Engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Global Middleware
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.raw({ type: ['image/jpeg', 'image/png', 'application/octet-stream'], limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+app.use(express.json({ limit: '15mb' }));
 app.use(cookieParser());
 app.use(session({
     secret: 'unimq-secret-key',
@@ -86,6 +89,13 @@ io.on('connection', (socket) => {
     socket.on('request-info', (deviceId) => {
         if (!socket.rooms.has(`device:${deviceId}`)) return;
         deviceManager.publish(deviceId, 'dev_getinfo');
+        deviceManager.requestCameraPing(deviceId);
+    });
+
+    socket.on('camera-ping', (payload) => {
+        const deviceId = typeof payload === 'object' ? payload.deviceId : payload;
+        if (!socket.rooms.has(`device:${deviceId}`)) return;
+        deviceManager.requestCameraPing(deviceId);
     });
 
     socket.on('device-control', (payload) => {
@@ -96,6 +106,33 @@ io.on('connection', (socket) => {
         deviceManager.publish(deviceId, command);
     });
 
+    socket.on('camera-capture', async (payload) => {
+        const deviceId = typeof payload === 'object' ? payload.deviceId : payload;
+        if (!socket.rooms.has(`device:${deviceId}`)) {
+            return socket.emit('error', 'Access denied to camera ' + deviceId);
+        }
+        try {
+            const [rows] = await pool.query('SELECT camera_mac FROM device WHERE device_id = ?', [deviceId]);
+            const camera_mac = rows.length > 0 ? rows[0].camera_mac : null;
+            const serverUrl = 'http://192.168.215.39:8180';
+            const cmd = JSON.stringify({
+                action: 'capture',
+                incubator_id: parseInt(deviceId),
+                camera_mac: camera_mac,
+                server_url: serverUrl,
+                upload_url: `${serverUrl}/api/devices/${deviceId}/camera/upload?cam_mac=${camera_mac || ''}`,
+                timestamp: Date.now()
+            });
+            deviceManager.publish(deviceId, cmd);
+            if (camera_mac) {
+                deviceManager.publish(deviceId, cmd, `camera/${camera_mac}/con`);
+            }
+            io.to(`device:${deviceId}`).emit('camera-status', { status: 'capturing', message: 'Trigger foto terkirim...' });
+        } catch (e) {
+            console.error('[WS camera-capture error]', e.message);
+        }
+    });
+
     socket.on('disconnect', () => {
         console.log(`[WS] User disconnected: ${socket.username}`);
     });
@@ -104,6 +141,17 @@ io.on('connection', (socket) => {
 // Event Bus: Forward MQTT data to Socket.IO clients
 eventBus.on('device-data', ({ deviceId, topic, data }) => {
     io.to(`device:${deviceId}`).emit('mqtt-message', { topic, data });
+
+    // Jika pesan status dari kamera (balasan ping on-demand atau saat pertama boot)
+    if (data.status === 'cam_online' || topic.includes('camera') || data.camera_mac) {
+        io.to(`device:${deviceId}`).emit('camera-online-status', {
+            online: true,
+            ip: data.ip || null,
+            rssi: data.rssi || null,
+            camera_mac: data.camera_mac || null,
+            time: Date.now()
+        });
+    }
 });
 
 // Start MQTT Worker

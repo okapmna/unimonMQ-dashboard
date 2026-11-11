@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const AuthController = require('../controllers/AuthController');
 const DeviceController = require('../controllers/DeviceController');
+const CameraController = require('../controllers/CameraController');
 const { checkWebAuth } = require('../middleware/auth');
 const pool = require('../src/config/db');
 const { matchDeviceConfig } = require('../src/device-types/registry');
@@ -9,6 +10,7 @@ const { loadDeviceViewData } = require('../src/device-types/loaders');
 
 // Public Routes
 router.get('/', AuthController.renderLogin);
+router.get('/login', (req, res) => res.redirect('/'));
 router.post('/login', AuthController.handleLogin);
 router.get('/logout', AuthController.logout);
 
@@ -18,6 +20,10 @@ router.post('/dashboard', checkWebAuth, DeviceController.handleDashboardPost);
 router.post('/devices/:id/share', checkWebAuth, DeviceController.shareDevice);
 router.delete('/devices/:id/share/:userId', checkWebAuth, DeviceController.unshareDevice);
 router.get('/devices/:id/users', checkWebAuth, DeviceController.getDeviceUsers);
+router.post('/devices/:id/camera/capture', checkWebAuth, (req, res) => CameraController.triggerCapture(req, res));
+router.delete('/devices/:id/camera/captures/:captureId', checkWebAuth, (req, res) => CameraController.deleteCapture(req, res));
+router.post('/devices/:id/camera/pair', checkWebAuth, (req, res) => CameraController.pairCamera(req, res));
+router.delete('/devices/:id/camera/unpair', checkWebAuth, (req, res) => CameraController.unpairCamera(req, res));
 
 // Dynamic Device Routing
 async function renderDeviceView(req, res, viewName) {

@@ -31,6 +31,18 @@ const loaders = {
       } catch (e) {}
     });
 
+    // Ambil riwayat foto kamera untuk inkubator ini
+    let camPhotos = [];
+    try {
+      const [photos] = await pool.query(
+        "SELECT * FROM camera_captures WHERE incubator_id = ? OR device_id = ? ORDER BY captured_at DESC LIMIT 50",
+        [deviceId, deviceId]
+      );
+      camPhotos = photos;
+    } catch (err) {
+      console.error('[Loader incubator camera photos error]:', err.message);
+    }
+
     return {
       chart_labels: chart_labels.reverse(),
       chart_temp_avg: chart_temp_avg.reverse(),
@@ -39,6 +51,9 @@ const loaders = {
       chart_hum_avg: chart_hum_avg.reverse(),
       chart_hum_high: chart_hum_high.reverse(),
       chart_hum_low: chart_hum_low.reverse(),
+      latestCamPhoto: camPhotos.length > 0 ? camPhotos[0] : null,
+      recentCamPhotos: camPhotos,
+      totalCamPhotos: camPhotos.length
     };
   },
   smartlamp: async (deviceId) => {

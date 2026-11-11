@@ -13,8 +13,23 @@ const registry = {
       },
     },
     topics: {
-      subscribe: (deviceId) => `incubator/${deviceId}/data`,
-      publish: (deviceId) => `incubator/${deviceId}/con`,
+      subscribe: (device) => {
+        const id = (device && typeof device === 'object') ? device.device_id : device;
+        const mac = (device && typeof device === 'object') ? device.camera_mac : null;
+        const list = [
+          `incubator/${id}/data`,
+          `incubator/${id}/camera/data`
+        ];
+        if (mac) {
+          list.push(`camera/${mac}/data`);
+          list.push(`camera/${mac}/status`);
+        }
+        return list;
+      },
+      publish: (device) => {
+        const id = (device && typeof device === 'object') ? device.device_id : device;
+        return `incubator/${id}/con`;
+      },
     },
     dashboard: {
       link: (deviceId) => `/device/${deviceId}`,

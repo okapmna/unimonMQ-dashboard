@@ -314,6 +314,254 @@
             </div>
         </div>
 
+        <!-- CAMERA MONITORING WIDGET (ESP32-S3 CAM) -->
+        <div class="mt-6 sm:mt-12 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-2xl transition-all duration-300">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-purple-100 text-purple-700 rounded-2xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 class="text-base sm:text-lg font-bold text-gray-900 uppercase tracking-tight">Kamera Pemantau Telur</h2>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-purple-50 text-purple-700 border border-purple-200">ESP32-S3 CAM</span>
+                            <span id="inc-cam-pair-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold flex items-center gap-1.5 <%= device_data.camera_mac ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' %>">
+                                <span id="inc-cam-pair-dot" class="w-1.5 h-1.5 rounded-full <%= device_data.camera_mac ? 'bg-emerald-500' : 'bg-amber-500' %>"></span>
+                                <span id="inc-cam-mac-text"><%= device_data.camera_mac ? device_data.camera_mac : 'Belum Tersanding' %></span>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span id="inc-cam-status-dot" class="w-2 h-2 rounded-full bg-gray-400 shrink-0"></span>
+                            <p id="inc-cam-status" class="text-xs text-gray-500 truncate">
+                                Memeriksa koneksi kamera...
+                            </p>
+                            <button type="button" onclick="pingCameraNow()" class="text-gray-400 hover:text-purple-600 p-0.5 rounded transition-colors" title="Cek ulang status kamera">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+                    <!-- Tombol Sandingkan Kamera via MAC -->
+                    <button type="button" onclick="openCamPairModal()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-colors flex items-center gap-1.5" title="Sandingkan kamera via MAC address hardware">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                        <span id="btn-pair-label"><%= device_data.camera_mac ? 'Ganti Sandingan' : 'Sandingkan Kamera' %></span>
+                    </button>
+
+                    <button id="btn-unpair-cam" type="button" onclick="unpairCamera()" class="<%= device_data.camera_mac ? '' : 'hidden' %> px-2.5 py-2 rounded-xl text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors" title="Lepas Sandingan Kamera">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+
+                    <button type="button" onclick="openCamInfoModal()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center gap-1.5" title="Petunjuk & Konfigurasi ESP32-S3 CAM">
+                        <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Info Modul</span>
+                    </button>
+                    <button id="btn-inc-capture" onclick="triggerIncubatorCameraCapture()" class="flex-1 sm:flex-initial bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-bold px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl shadow-md shadow-purple-600/20 text-xs sm:text-sm transition-all flex items-center justify-center gap-2">
+                        <svg id="inc-icon-cam" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <svg id="inc-icon-loading" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                        <span id="inc-btn-capture-text">Ambil Foto Sekarang</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid Konten Kamera -->
+            <% 
+                const _latestCam = (typeof latestCamPhoto !== 'undefined' && latestCamPhoto) ? latestCamPhoto : null; 
+                const _recentPhotos = (typeof recentCamPhotos !== 'undefined' && Array.isArray(recentCamPhotos)) ? recentCamPhotos : []; 
+            %>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                <!-- Foto Utama (2 Kolom) -->
+                <div class="md:col-span-2 relative aspect-[16/10] bg-gray-900 rounded-2xl overflow-hidden flex items-center justify-center border border-gray-200 group">
+                    <img id="inc-latest-photo" 
+                         src="<%= _latestCam ? _latestCam.filepath : '' %>" 
+                         alt="Kondisi Telur Inkubator" 
+                         class="w-full h-full object-contain <%= _latestCam ? '' : 'hidden' %> cursor-pointer transition-transform duration-300 group-hover:scale-[1.02]"
+                         onclick="openIncPhotoModal(this.src, document.getElementById('inc-photo-time').innerText, '<%= _latestCam ? _latestCam.id : '' %>')">
+                    
+                    <div id="inc-no-photo" class="flex flex-col items-center justify-center p-6 text-center text-gray-400 <%= _latestCam ? 'hidden' : '' %>">
+                        <svg class="w-12 h-12 mb-2 text-gray-600 stroke-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                        </svg>
+                        <p class="font-bold text-sm text-gray-300">Belum Ada Foto Terambil</p>
+                        <p class="text-xs text-gray-500 mt-1">Tekan tombol "Ambil Foto Sekarang" untuk meminta modul ESP32-S3 Cam memotret telur di dalam inkubator.</p>
+                    </div>
+
+                    <!-- Flash overlay -->
+                    <div id="inc-capture-flash" class="absolute inset-0 bg-white opacity-0 pointer-events-none transition-opacity duration-200"></div>
+
+                    <!-- Info bar overlay -->
+                    <div class="absolute bottom-2 left-2 right-2 flex justify-between items-center bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-[10px] sm:text-xs">
+                        <span id="inc-photo-time" class="font-mono truncate">
+                            <%= _latestCam ? new Date(_latestCam.captured_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' }) : 'Menunggu pemotretan pertama...' %>
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-purple-300 font-semibold shrink-0">Live Capture</span>
+                            <% if (_latestCam) { %>
+                            <button onclick="event.stopPropagation(); deleteIncPhoto(<%= _latestCam.id %>)" class="text-gray-400 hover:text-red-400 p-0.5" title="Hapus Foto">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mini Galeri Riwayat Foto (1 Kolom) -->
+                <div class="flex flex-col gap-2.5">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500">Riwayat Foto Telur</h3>
+                        <span id="inc-photos-count" class="text-[11px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200"><%= _recentPhotos.length %> Foto</span>
+                    </div>
+                    <div id="inc-recent-grid" class="grid grid-cols-3 gap-2 max-h-56 overflow-y-auto p-1">
+                        <% if (_recentPhotos && _recentPhotos.length > 0) { %>
+                            <% _recentPhotos.forEach(p => { %>
+                                <div id="inc-thumb-<%= p.id %>" class="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity" onclick="openIncPhotoModal('<%= p.filepath %>', '<%= p.captured_at %>', <%= p.id %>)">
+                                    <img src="<%= p.filepath %>" alt="<%= p.filename %>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" loading="lazy">
+                                    <button onclick="event.stopPropagation(); deleteIncPhoto(<%= p.id %>)" class="absolute top-1 right-1 bg-black/60 hover:bg-red-600 text-white rounded-md p-1 opacity-0 group-hover:opacity-100 transition-opacity" title="Hapus">
+                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <div id="inc-empty-thumbs" class="col-span-3 py-6 text-center text-[11px] text-gray-400 border border-dashed rounded-xl">
+                                Belum ada riwayat foto
+                            </div>
+                        <% } %>
+                    </div>
+                    <p id="inc-capture-msg" class="text-[11px] text-gray-500 mt-1 italic">
+                        ESP32-S3 Cam memotret kondisi telur saat tombol ditekan dan menyimpannya di sini.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL SANDINGKAN KAMERA (PAIRING) -->
+        <div id="cam-pair-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-gray-100 relative">
+                <button onclick="closeCamPairModal()" class="absolute top-5 right-5 text-gray-400 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2.5 bg-purple-100 text-purple-700 rounded-2xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Sandingkan ESP32-S3 CAM</h3>
+                        <p class="text-xs text-gray-500">Penyandingan otomatis berbasis MAC Address Hardware</p>
+                    </div>
+                </div>
+
+                <form onsubmit="submitCameraPair(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                            ID Kamera / MAC Address Hardware
+                        </label>
+                        <input type="text" id="input-cam-mac" required
+                               value="<%= device_data.camera_mac || '' %>"
+                               placeholder="Contoh: cam-d4e5f6 atau e8:6b:ea:d4:e5:f6"
+                               class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all">
+                        <p class="text-[11px] text-gray-500 mt-2 leading-relaxed">
+                            💡 <b>Cara melihat ID Kamera:</b> Nyalakan modul ESP32-S3 CAM dan buka <i>Serial Monitor Arduino (115200 baud)</i>. ID bawaan kamera Anda (misal <code class="bg-gray-100 text-purple-700 px-1 rounded font-bold">cam-xxxxxx</code>) akan tercetak saat booting.
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-purple-50 rounded-xl border border-purple-100 text-xs text-purple-900">
+                        <p class="font-semibold mb-1">Keuntungan Pairing MAC:</p>
+                        <p class="text-[11px] text-purple-800">
+                            Firmware kamera tidak perlu di-flash ulang saat dipindahkan antar-inkubator. Cukup masukkan ID kamera di sini, kamera otomatis terhubung ke inkubator ini!
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-3 pt-2">
+                        <button type="button" onclick="closeCamPairModal()" class="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition-colors">
+                            Batal
+                        </button>
+                        <button type="submit" id="btn-submit-pair" class="flex-1 py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-md shadow-purple-600/20 transition-all flex items-center justify-center gap-1.5">
+                            Simpan & Sandingkan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL INFO & PANDUAN MODUL ESP32-S3 CAM UNTUK INKUBATOR INI -->
+        <div id="cam-info-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-gray-100 relative max-h-[90vh] overflow-y-auto">
+                <button onclick="closeCamInfoModal()" class="absolute top-5 right-5 text-gray-400 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2.5 bg-purple-100 text-purple-700 rounded-2xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Modul Kamera ESP32-S3</h3>
+                        <p class="text-xs text-gray-500">Konfigurasi perangkat kamera untuk <%= device_data.device_name %></p>
+                    </div>
+                </div>
+
+                <p class="text-xs text-gray-600 mb-3 leading-relaxed">
+                    Kamera terhubung langsung ke inkubator ini berdasarkan ID MAC hardware tanpa perlu dashboard terpisah.
+                </p>
+
+                <div class="bg-gray-900 text-green-400 font-mono text-xs rounded-2xl p-4 mb-4 relative overflow-x-auto select-all">
+                    <p><span class="text-purple-400">// Identitas Perangkat:</span></p>
+                    <p>Inkubator ID : <span class="text-yellow-300 font-bold"><%= device_data.device_id %></span></p>
+                    <p>Camera ID    : <span id="modal-info-mac" class="text-yellow-300 font-bold"><%= device_data.camera_mac || '(Belum disandingkan)' %></span></p>
+                    <p class="mt-2"><span class="text-purple-400">// Broker MQTT:</span></p>
+                    <p>Server : "<span class="text-yellow-300"><%= device_data.broker_url %></span>"</p>
+                    <p>Port   : 1883</p>
+                    <p class="mt-2"><span class="text-purple-400">// Topik MQTT Kamera:</span></p>
+                    <p><span class="text-gray-400">Subscribe (Perintah) :</span> camera/<span class="text-yellow-300 font-bold" id="modal-info-topic-sub"><%= device_data.camera_mac || '<ID_KAMERA>' %></span>/con</p>
+                    <p><span class="text-gray-400">Publish (Status)     :</span> camera/<span class="text-yellow-300 font-bold" id="modal-info-topic-pub"><%= device_data.camera_mac || '<ID_KAMERA>' %></span>/data</p>
+                    <p class="mt-2"><span class="text-purple-400">// Upload Foto via HTTP POST:</span></p>
+                    <p class="text-gray-300">/api/devices/<%= device_data.device_id %>/camera/upload</p>
+                </div>
+
+                <div class="bg-purple-50 rounded-2xl p-4 border border-purple-100 text-xs text-purple-900 mb-5">
+                    <p class="font-bold mb-1">Alur Kerja Otomatis:</p>
+                    <ol class="list-decimal ml-4 space-y-1 text-purple-800">
+                        <li>Pastikan kamera sudah disandingkan dengan menekan tombol <b>"Sandingkan Kamera"</b>.</li>
+                        <li>Klik <b>"Ambil Foto Sekarang"</b> di widget ini.</li>
+                        <li>Dashboard mengirim sinyal capture ke kamera via MQTT (<code class="bg-purple-100 text-purple-900 px-1 rounded font-bold">camera/&lt;id&gt;/con</code>).</li>
+                        <li>ESP32-S3 mengambil foto dan mengunggahnya ke server.</li>
+                        <li>Foto langsung tampil di galeri ini secara realtime tanpa reload!</li>
+                    </ol>
+                </div>
+
+                <button type="button" onclick="closeCamInfoModal()" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl text-xs transition-colors">
+                    Mengerti & Tutup
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL PREVIEW FOTO BESAR -->
+        <div id="inc-photo-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+            <div class="absolute top-4 right-4 flex items-center gap-3">
+                <a id="inc-modal-download" href="#" download class="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors" title="Unduh Foto">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                </a>
+                <button onclick="closeIncPhotoModal()" class="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors" title="Tutup">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="max-w-4xl max-h-[85vh] w-full flex flex-col items-center justify-center">
+                <img id="inc-modal-img" src="" alt="Preview Foto Telur" class="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl">
+                <p id="inc-modal-time" class="text-gray-300 text-xs sm:text-sm mt-3 font-medium font-mono"></p>
+            </div>
+        </div>
+
         <div class="flex flex-col gap-6 sm:gap-12 mt-6 sm:mt-12">
             <div
                 class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300">
@@ -351,6 +599,69 @@
                     <canvas id="humChart"></canvas>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL INFO / PANDUAN MODUL ESP32-S3 CAM -->
+    <div id="cam-info-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-gray-100 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeCamInfoModal()" class="absolute top-5 right-5 text-gray-400 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+
+            <div class="flex items-center gap-3 mb-4">
+                <div class="p-2.5 bg-purple-100 text-purple-700 rounded-2xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Modul Kamera ESP32-S3</h3>
+                    <p class="text-xs text-gray-500">Konfigurasi perangkat kamera untuk <%= device_data.device_name %></p>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-600 mb-4 leading-relaxed">
+                Kamera terhubung langsung ke inkubator ini. Masukkan parameter berikut ke file <code class="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-mono font-bold">secret.h</code> pada firmware ESP32-S3 CAM Anda:
+            </p>
+
+            <div class="bg-gray-900 text-green-400 font-mono text-xs rounded-2xl p-4 mb-4 relative overflow-x-auto select-all">
+                <p><span class="text-purple-400">// Device ID Inkubator Ini:</span></p>
+                <p>const int DEVICE_ID = <span class="text-yellow-300 font-bold"><%= device_data.device_id %></span>;</p>
+                <p class="mt-2"><span class="text-purple-400">// MQTT Topics:</span></p>
+                <p><span class="text-gray-400">Subscribe :</span> incubator/<%= device_data.device_id %>/con</p>
+                <p><span class="text-gray-400">Publish   :</span> incubator/<%= device_data.device_id %>/data</p>
+                <p class="mt-2"><span class="text-purple-400">// Upload HTTP Endpoint:</span></p>
+                <p class="text-gray-300">/api/devices/<%= device_data.device_id %>/camera/upload</p>
+            </div>
+
+            <div class="bg-purple-50 rounded-2xl p-4 border border-purple-100 text-xs text-purple-900 mb-5">
+                <p class="font-bold mb-1">Cara Kerja:</p>
+                <ol class="list-decimal ml-4 space-y-1 text-purple-800">
+                    <li>Saat Anda klik <b>"Ambil Foto Sekarang"</b>, dashboard mengirim pesan MQTT <code class="font-mono bg-purple-200/60 px-1 py-0.5 rounded font-bold">{"action":"capture"}</code>.</li>
+                    <li>ESP32-S3 CAM mengambil foto dari sensor kamera OV5640/OV2640.</li>
+                    <li>ESP32-S3 mengunggah gambar via HTTP POST langsung ke dashboard inkubator.</li>
+                    <li>Foto langsung tersimpan dan otomatis tampil di layar inkubator secara realtime!</li>
+                </ol>
+            </div>
+
+            <button type="button" onclick="closeCamInfoModal()" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl text-xs transition-colors">
+                Tutup Panduan
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL PREVIEW FOTO BESAR -->
+    <div id="inc-photo-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+        <div class="absolute top-4 right-4 flex items-center gap-3">
+            <a id="inc-modal-download" href="#" download class="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors" title="Unduh Foto">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            </a>
+            <button onclick="closeIncPhotoModal()" class="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors" title="Tutup">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="max-w-4xl max-h-[85vh] w-full flex flex-col items-center justify-center">
+            <img id="inc-modal-img" src="" alt="Preview Foto Telur" class="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl">
+            <p id="inc-modal-time" class="text-gray-300 text-xs sm:text-sm mt-3 font-medium font-mono"></p>
         </div>
     </div>
 
@@ -505,6 +816,7 @@
         socket.on('joined', (id) => {
             if (id === deviceId) {
                 socket.emit('request-info', deviceId);
+                pingCameraNow();
             }
         });
 
@@ -706,6 +1018,335 @@
                 toast.style.transition = 'opacity 0.3s ease';
                 setTimeout(() => toast.remove(), 300);
             }, 2000);
+        }
+
+        // --- INCUBATOR CAMERA INTEGRATION ---
+        let isCamCapturing = false;
+        let currentCamMac = '<%= device_data.camera_mac || "" %>';
+
+        // --- CAMERA PAIRING LOGIC (MAC ADDRESS) ---
+        function openCamPairModal() {
+            if (isViewer) {
+                showToast('Hanya owner/operator yang dapat mengatur kamera');
+                return;
+            }
+            const m = document.getElementById('cam-pair-modal');
+            if (m) m.classList.remove('hidden');
+        }
+
+        function closeCamPairModal() {
+            const m = document.getElementById('cam-pair-modal');
+            if (m) m.classList.add('hidden');
+        }
+
+        async function submitCameraPair(event) {
+            event.preventDefault();
+            const macInput = document.getElementById('input-cam-mac');
+            const btn = document.getElementById('btn-submit-pair');
+            if (!macInput) return;
+
+            const macVal = macInput.value.trim();
+            if (!macVal) {
+                alert('Silakan masukkan ID Kamera / MAC Address');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = 'Menyimpan...';
+
+            try {
+                const res = await fetch(`/api/devices/${deviceId}/camera/pair`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ camera_mac: macVal })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || 'Kamera berhasil disandingkan!');
+                    updateCamPairUI(data.camera_mac);
+                    closeCamPairModal();
+                } else {
+                    alert('Gagal menyandingkan: ' + (data.error || 'Terjadi kesalahan'));
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Simpan & Sandingkan';
+            }
+        }
+
+        async function unpairCamera() {
+            if (isViewer) return;
+            if (!confirm(`Lepas sandingan kamera (${currentCamMac}) dari inkubator ini?`)) return;
+
+            try {
+                const res = await fetch(`/api/devices/${deviceId}/camera/unpair`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Kamera berhasil dilepas');
+                    updateCamPairUI(null);
+                } else {
+                    alert('Gagal melepas kamera: ' + (data.error || 'Terjadi kesalahan'));
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        function updateCamPairUI(mac) {
+            currentCamMac = mac || '';
+            const badge = document.getElementById('inc-cam-pair-badge');
+            const dot = document.getElementById('inc-cam-pair-dot');
+            const macText = document.getElementById('inc-cam-mac-text');
+            const btnLabel = document.getElementById('btn-pair-label');
+            const unpairBtn = document.getElementById('btn-unpair-cam');
+            const infoMac = document.getElementById('modal-info-mac');
+            const infoSub = document.getElementById('modal-info-topic-sub');
+            const infoPub = document.getElementById('modal-info-topic-pub');
+
+            if (mac) {
+                if (badge) {
+                    badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200';
+                }
+                if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500';
+                if (macText) macText.innerText = mac;
+                if (btnLabel) btnLabel.innerText = 'Ganti Sandingan';
+                if (unpairBtn) unpairBtn.classList.remove('hidden');
+                if (infoMac) infoMac.innerText = mac;
+                if (infoSub) infoSub.innerText = mac;
+                if (infoPub) infoPub.innerText = mac;
+            } else {
+                if (badge) {
+                    badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200';
+                }
+                if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500';
+                if (macText) macText.innerText = 'Belum Tersanding';
+                if (btnLabel) btnLabel.innerText = 'Sandingkan Kamera';
+                if (unpairBtn) unpairBtn.classList.add('hidden');
+                if (infoMac) infoMac.innerText = '(Belum disandingkan)';
+                if (infoSub) infoSub.innerText = '<ID_KAMERA>';
+                if (infoPub) infoPub.innerText = '<ID_KAMERA>';
+            }
+        }
+
+        // --- ON-DEMAND CAMERA STATUS (TRIGGER SAAT DASHBOARD DIMUAT) ---
+        let camPingTimeout = null;
+
+        function pingCameraNow() {
+            const statusEl = document.getElementById('inc-cam-status');
+            const dotEl = document.getElementById('inc-cam-status-dot');
+
+            if (statusEl) {
+                statusEl.innerText = 'Memeriksa status kamera...';
+                statusEl.className = 'text-xs text-amber-600 font-medium truncate';
+            }
+            if (dotEl) dotEl.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0';
+
+            // Kirim ping ke ESP32-S3 Cam via backend & MQTT
+            socket.emit('camera-ping', { deviceId });
+
+            if (camPingTimeout) clearTimeout(camPingTimeout);
+            camPingTimeout = setTimeout(() => {
+                if (statusEl && statusEl.innerText.includes('Memeriksa')) {
+                    statusEl.innerText = 'Kamera Siaga (Standby / Belum aktif)';
+                    statusEl.className = 'text-xs text-gray-500 truncate';
+                    if (dotEl) dotEl.className = 'w-2 h-2 rounded-full bg-gray-400 shrink-0';
+                }
+            }, 6000);
+        }
+
+        socket.on('camera-online-status', (info) => {
+            if (camPingTimeout) clearTimeout(camPingTimeout);
+            const statusEl = document.getElementById('inc-cam-status');
+            const dotEl = document.getElementById('inc-cam-status-dot');
+
+            if (statusEl) {
+                let detail = 'Kamera Terhubung (Online)';
+                if (info.ip) detail += ` • IP: ${info.ip}`;
+                if (info.rssi) detail += ` • Sinyal: ${info.rssi} dBm`;
+                statusEl.innerText = detail;
+                statusEl.className = 'text-xs text-emerald-600 font-semibold truncate';
+            }
+            if (dotEl) {
+                dotEl.className = 'w-2 h-2 rounded-full bg-emerald-500 shrink-0';
+            }
+        });
+
+        socket.on('camera-paired', (data) => {
+            if (data.deviceId == deviceId) {
+                updateCamPairUI(data.camera_mac);
+            }
+        });
+
+        socket.on('camera-unpaired', (data) => {
+            if (data.deviceId == deviceId) {
+                updateCamPairUI(null);
+            }
+        });
+
+        socket.on('camera-photo-received', (photo) => {
+            console.log('[Inkubator] Foto baru dari kamera diterima:', photo);
+            showToast('Foto baru dari ESP32-S3 Cam berhasil diterima!');
+            setIncCamLoading(false, 'Foto berhasil diperbarui');
+            
+            const photoEl = document.getElementById('inc-latest-photo');
+            const noPhotoEl = document.getElementById('inc-no-photo');
+            const timeEl = document.getElementById('inc-photo-time');
+            const flash = document.getElementById('inc-capture-flash');
+
+            if (photoEl) {
+                photoEl.src = photo.filepath + '?t=' + Date.now();
+                photoEl.classList.remove('hidden');
+            }
+            if (noPhotoEl) noPhotoEl.classList.add('hidden');
+            if (timeEl) {
+                const d = new Date(photo.captured_at || Date.now());
+                timeEl.innerText = d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
+            }
+
+            if (flash) {
+                flash.classList.remove('opacity-0');
+                flash.classList.add('opacity-75');
+                setTimeout(() => {
+                    flash.classList.remove('opacity-75');
+                    flash.classList.add('opacity-0');
+                }, 150);
+            }
+
+            // Tambahkan ke mini grid
+            const grid = document.getElementById('inc-recent-grid');
+            if (grid) {
+                const thumb = document.createElement('div');
+                thumb.className = 'aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity animate-fade-in';
+                thumb.onclick = () => openIncPhotoModal(photo.filepath, photo.captured_at);
+                thumb.innerHTML = `<img src="${photo.filepath}" alt="${photo.filename}" class="w-full h-full object-cover" loading="lazy">`;
+                if (grid.firstChild) {
+                    grid.insertBefore(thumb, grid.firstChild);
+                } else {
+                    grid.appendChild(thumb);
+                }
+            }
+        });
+
+        socket.on('camera-status', (data) => {
+            if (data.status === 'capturing') {
+                setIncCamLoading(true, data.message || 'ESP32-S3 sedang memotret...');
+            } else if (data.status === 'idle') {
+                setIncCamLoading(false, data.message || 'Siap');
+            }
+        });
+
+        async function triggerIncubatorCameraCapture() {
+            if (isViewer) {
+                showToast('Akses viewer tidak dapat mengambil foto');
+                return;
+            }
+            if (isCamCapturing) return;
+
+            setIncCamLoading(true, 'Mengirim perintah ambil foto ke ESP32-S3...');
+
+            try {
+                // Call API trigger to command camera via MQTT
+                const res = await fetch(`/api/devices/${deviceId}/camera/capture`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'capture' })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setIncCamLoading(true, 'Trigger terkirim ke ESP32-S3 Cam! Menunggu foto...');
+                    setTimeout(() => {
+                        if (isCamCapturing) {
+                            setIncCamLoading(false, 'Kamera belum merespon. Pastikan ESP32-S3 Cam menyala & tersambung ke WiFi/MQTT.');
+                        }
+                    }, 15000);
+                } else {
+                    setIncCamLoading(false, 'Gagal: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                setIncCamLoading(false, 'Koneksi gagal: ' + err.message);
+            }
+        }
+
+        async function deleteIncPhoto(photoId) {
+            if (isViewer) return;
+            if (!confirm('Hapus foto ini?')) return;
+            try {
+                const res = await fetch(`/api/devices/${deviceId}/camera/captures/${photoId}`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const thumb = document.getElementById(`inc-thumb-${photoId}`);
+                    if (thumb) thumb.remove();
+                    showToast('Foto berhasil dihapus');
+                    // Update count
+                    const countEl = document.getElementById('inc-photos-count');
+                    if (countEl) {
+                        let cur = parseInt(countEl.innerText) || 1;
+                        countEl.innerText = Math.max(0, cur - 1) + ' Foto';
+                    }
+                } else {
+                    alert('Gagal menghapus: ' + (data.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('Error hapus foto: ' + e.message);
+            }
+        }
+
+        function setIncCamLoading(loading, msg) {
+            isCamCapturing = loading;
+            const btn = document.getElementById('btn-inc-capture');
+            const iconCam = document.getElementById('inc-icon-cam');
+            const iconLoading = document.getElementById('inc-icon-loading');
+            const text = document.getElementById('inc-btn-capture-text');
+            const msgEl = document.getElementById('inc-capture-msg');
+
+            if (loading) {
+                btn.disabled = true;
+                btn.classList.add('opacity-75', 'cursor-not-allowed');
+                iconCam.classList.add('hidden');
+                iconLoading.classList.remove('hidden');
+                text.innerText = 'Mengambil...';
+                if (msgEl) msgEl.innerText = msg || 'ESP32-S3 sedang mengambil gambar...';
+            } else {
+                btn.disabled = false;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                iconCam.classList.remove('hidden');
+                iconLoading.classList.add('hidden');
+                text.innerText = 'Ambil Foto Sekarang';
+                if (msgEl) msgEl.innerText = msg || 'ESP32-S3 Cam memotret kondisi telur saat tombol ditekan dan menyimpannya di sini.';
+            }
+        }
+
+        function openCamInfoModal() {
+            const m = document.getElementById('cam-info-modal');
+            if (m) m.classList.remove('hidden');
+        }
+
+        function closeCamInfoModal() {
+            const m = document.getElementById('cam-info-modal');
+            if (m) m.classList.add('hidden');
+        }
+
+        function openIncPhotoModal(src, time, id) {
+            const modal = document.getElementById('inc-photo-modal');
+            const img = document.getElementById('inc-modal-img');
+            const timeEl = document.getElementById('inc-modal-time');
+            const dl = document.getElementById('inc-modal-download');
+
+            if (img) img.src = src;
+            if (dl) dl.href = src;
+            if (timeEl) timeEl.innerText = time ? new Date(time).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'medium' }) : '';
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeIncPhotoModal() {
+            const modal = document.getElementById('inc-photo-modal');
+            if (modal) modal.classList.add('hidden');
         }
 
         const servoStyle = document.createElement('style');

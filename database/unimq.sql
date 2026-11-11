@@ -101,6 +101,22 @@ CREATE TABLE `device_logs` (
   CONSTRAINT `device_logs_ibfk_1` FOREIGN KEY (`device_id`) REFERENCES `device` (`device_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Table structure for `camera_captures`
+CREATE TABLE IF NOT EXISTS `camera_captures` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `device_id` int(10) NOT NULL,
+  `incubator_id` int(10) DEFAULT NULL,
+  `filename` varchar(255) NOT NULL,
+  `filepath` varchar(255) NOT NULL,
+  `filesize` int(11) DEFAULT 0,
+  `trigger_source` varchar(50) DEFAULT 'dashboard',
+  `captured_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `device_id` (`device_id`),
+  KEY `incubator_id` (`incubator_id`),
+  CONSTRAINT `camera_captures_ibfk_1` FOREIGN KEY (`device_id`) REFERENCES `device` (`device_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

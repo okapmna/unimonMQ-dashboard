@@ -2,11 +2,37 @@ const express = require('express');
 const router = express.Router();
 const AuthController = require('../controllers/AuthController');
 const DeviceController = require('../controllers/DeviceController');
+const CameraController = require('../controllers/CameraController');
 const { authenticateToken } = require('../middleware/auth');
 const pool = require('../src/config/db');
 
 // Public API
 router.post('/login', AuthController.apiLogin);
+
+// Camera Upload API from ESP32-S3 (Direct device endpoint or MAC endpoint)
+router.post('/devices/:id/camera/upload', (req, res) => CameraController.uploadCapture(req, res));
+router.post('/camera/:mac/upload', (req, res) => CameraController.uploadCapture(req, res));
+
+// Camera Captures list (Public/Embeddable or protected)
+router.get('/devices/:id/camera/captures', (req, res) => CameraController.getCaptures(req, res));
+
+// Protected Camera Trigger & Delete (Bearer Token or Web Session if present)
+const optionalAuth = (req, res, next) => {
+    if (req.headers.authorization) {
+        return authenticateToken(req, res, next);
+    }
+    if (req.session && req.session.user_id) {
+        return next();
+    }
+    return authenticateToken(req, res, next);
+};
+
+// Camera Pairing API
+router.post('/devices/:id/camera/pair', optionalAuth, (req, res) => CameraController.pairCamera(req, res));
+router.delete('/devices/:id/camera/unpair', optionalAuth, (req, res) => CameraController.unpairCamera(req, res));
+
+router.post('/devices/:id/camera/capture', optionalAuth, (req, res) => CameraController.triggerCapture(req, res));
+router.delete('/devices/:id/camera/captures/:captureId', optionalAuth, (req, res) => CameraController.deleteCapture(req, res));
 
 // Protected API
 router.get('/devices', authenticateToken, DeviceController.apiGetDevices);

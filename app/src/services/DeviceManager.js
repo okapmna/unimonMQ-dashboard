@@ -4,10 +4,12 @@ const eventBus = require('./eventBus');
 const { matchDeviceConfig, getTopicConfig } = require('../device-types/registry');
 const { handleIncubator } = require('../handlers/incubator');
 const { handleSmartlamp } = require('../handlers/smartlamp');
+const { handleEspcam } = require('../handlers/espcam');
 
 const handlerMap = {
   incubator: handleIncubator,
   smartlamp: handleSmartlamp,
+  espcam: handleEspcam,
 };
 
 class DeviceManager {
@@ -69,8 +71,9 @@ class DeviceManager {
       
       const topicConfig = getTopicConfig(device);
       if (topicConfig) {
-        client.subscribe(topicConfig.subscribe);
-        console.log(`[Device ${device.device_id}] Subscribed to: ${topicConfig.subscribe}`);
+        const topics = Array.isArray(topicConfig.subscribe) ? topicConfig.subscribe : [topicConfig.subscribe];
+        topics.forEach(t => client.subscribe(t));
+        console.log(`[Device ${device.device_id}] Subscribed to: ${topics.join(', ')}`);
       }
     });
 
@@ -90,10 +93,18 @@ class DeviceManager {
           data
         });
 
-        const handlerConfig = matchDeviceConfig(device.device_type);
-        const handler = handlerConfig ? handlerMap[handlerConfig.key] : null;
-        if (handler) {
-          await handler(device, data, buffer);
+        // Jika pesan datang dari kamera (topik camera/... atau data status kamera)
+        if (topic.includes('camera') || data.status === 'cam_online' || data.camera_mac || (device.camera_mac && topic.includes(device.camera_mac))) {
+          const espcamHandler = handlerMap['espcam'];
+          if (espcamHandler) {
+            await espcamHandler(device, data, buffer);
+          }
+        } else {
+          const handlerConfig = matchDeviceConfig(device.device_type);
+          const handler = handlerConfig ? handlerMap[handlerConfig.key] : null;
+          if (handler) {
+            await handler(device, data, buffer);
+          }
         }
       } catch (e) {
         console.error(`[Device ${device.device_id}] JSON Parse/Process Error:`, e.message);
@@ -107,7 +118,7 @@ class DeviceManager {
     });
   }
   
-  publish(deviceId, payload) {
+  publish(deviceId, payload, topicOverride = null) {
     const client = this.mqttClients[deviceId];
     const device = this.deviceInfo[deviceId];
     if (!client || !client.connected || !device) return false;
@@ -115,9 +126,28 @@ class DeviceManager {
     const topicConfig = getTopicConfig(device);
     if (!topicConfig) return false;
 
+    const targetTopic = topicOverride || topicConfig.publish;
     const msg = typeof payload === 'string' ? payload : JSON.stringify(payload);
-    client.publish(topicConfig.publish, msg);
-    console.log(`[Device ${deviceId}] Published to [${topicConfig.publish}]: ${msg}`);
+    client.publish(targetTopic, msg);
+    console.log(`[Device ${deviceId}] Published to [${targetTopic}]: ${msg}`);
+    return true;
+  }
+
+  requestCameraPing(deviceId) {
+    const device = this.deviceInfo[deviceId];
+    if (!device) return false;
+
+    const pingPayload = JSON.stringify({
+      action: 'ping',
+      incubator_id: parseInt(deviceId),
+      timestamp: Date.now()
+    });
+
+    if (device.camera_mac) {
+      this.publish(deviceId, pingPayload, `camera/${device.camera_mac}/con`);
+    }
+    this.publish(deviceId, pingPayload, `incubator/${deviceId}/con`);
+    console.log(`[Device ${deviceId}] Ping sent to camera (MAC: ${device.camera_mac || 'none'})`);
     return true;
   }
 
