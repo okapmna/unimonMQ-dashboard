@@ -142,9 +142,10 @@
                                         <%= device.role %>
                                     </span>
                                 </div>
-                                <h3 class="text-base sm:text-2xl md:text-3xl font-bold text-dark-text mb-1 pr-4 sm:pr-8 group-hover:text-accent-green transition-colors line-clamp-2">
+                                <h3 class="text-base sm:text-2xl md:text-3xl font-bold text-dark-text mb-1.5 sm:mb-2 pr-4 sm:pr-8 group-hover:text-accent-green transition-colors line-clamp-2">
                                     <%= displayName %>
                                 </h3>
+                                <p class="font-mono text-[10px] sm:text-sm font-medium text-gray-500 mb-1"><%= id_val %></p>
                                 <div class="mt-2 sm:mt-6 pt-2 sm:pt-6 border-t border-gray-100">
                                     <div class="hidden sm:block">
                                         <p class="text-xs font-semibold text-muted-text uppercase mb-1">Broker Config</p>
@@ -159,9 +160,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="mt-2 sm:mt-4 text-right">
-                                <span class="text-[8px] sm:text-[10px] text-gray-300 font-mono line-clamp-1">ID: <%= id_val %></span>
-                            </div>
+                            <div class="mt-2 sm:mt-4"></div>
                         </a>
                     </div>
                 <% }); %>
@@ -187,6 +186,7 @@
             </div>
         <% } %>
     </main>
+    </div>
 
 
     <div id="deviceModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
