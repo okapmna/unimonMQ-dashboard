@@ -105,6 +105,21 @@ async function initDatabaseTables() {
     if (colsMac.length === 0) {
       await pool.query("ALTER TABLE device ADD COLUMN camera_mac varchar(64) DEFAULT NULL AFTER broker_port");
     }
+
+    // Target terakhir dari dashboard: diterapkan otomatis ke perangkat saat kembali online
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS device_settings (
+        device_id varchar(32) NOT NULL,
+        target_temp double DEFAULT NULL,
+        target_hum double DEFAULT NULL,
+        fan_speed int(11) DEFAULT NULL,
+        servo_mode int(11) DEFAULT NULL,
+        servo_interval int(11) DEFAULT NULL,
+        updated_at timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+        PRIMARY KEY (device_id),
+        CONSTRAINT fk_settings_device FOREIGN KEY (device_id) REFERENCES device (device_id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    `);
   } catch (err) {
     console.error('[DB Init] Table check error (may be fine if db not ready):', err.message);
   }

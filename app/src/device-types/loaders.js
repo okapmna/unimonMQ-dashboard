@@ -1,8 +1,12 @@
 const pool = require('../config/db');
 const { matchDeviceConfig } = require('./registry');
+const deviceSettings = require('../services/deviceSettings');
 
 const loaders = {
   incubator: async (deviceId) => {
+    // Target tersimpan (terakhir diatur dari dashboard, walau perangkat offline)
+    const saved_targets = await deviceSettings.getSettings(deviceId);
+
     const [logs] = await pool.query(
       "SELECT data, created_at FROM device_logs WHERE device_id = ? ORDER BY created_at DESC LIMIT 15",
       [deviceId]
@@ -44,6 +48,7 @@ const loaders = {
     }
 
     return {
+      saved_targets,
       chart_labels: chart_labels.reverse(),
       chart_temp_avg: chart_temp_avg.reverse(),
       chart_temp_high: chart_temp_high.reverse(),

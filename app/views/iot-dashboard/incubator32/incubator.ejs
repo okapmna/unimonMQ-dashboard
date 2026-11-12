@@ -714,11 +714,11 @@
     </div>
 
     <script>
-        document.getElementById('date-display').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-
-        let currentTargetTemp = 37.5;
-        let currentTargetHum = 55;
-        let currentTargetFan = 50;
+        const savedTargets = <%- JSON.stringify(saved_targets || null) %>;
+        const _num = (v, def) => (v !== null && v !== undefined && !Number.isNaN(parseFloat(v))) ? parseFloat(v) : def;
+        let currentTargetTemp = _num(savedTargets && savedTargets.target_temp, 37.5);
+        let currentTargetHum = _num(savedTargets && savedTargets.target_hum, 55);
+        let currentTargetFan = _num(savedTargets && savedTargets.fan_speed, 50);
         const userRole = container.dataset.role;
         const isViewer = userRole === 'viewer';
 
@@ -875,6 +875,12 @@
 
         socket.on('error', (msg) => {
             console.error('Socket Error:', msg);
+        });
+
+        socket.on('control-ack', ({ published }) => {
+            if (published === false) {
+                showToast('Inkubator offline — target disimpan & otomatis diterapkan saat online');
+            }
         });
 
         socket.on('mqtt-message', ({ topic, data }) => {
@@ -1058,6 +1064,77 @@
             if (textEl) textEl.innerText = interval;
             if (valEl) valEl.innerText = interval;
         }
+
+        function toggleFanServo() {
+            const content = document.getElementById('fan-servo-content');
+            const arrow = document.getElementById('fan-servo-arrow');
+            const isHidden = content.classList.toggle('hidden');
+            arrow.style.transform = isHidden ? '' : 'rotate(180deg)';
+            try { localStorage.setItem('fs-open', isHidden ? '0' : '1'); } catch (e) {}
+        }
+
+        function toggleHistory() {
+            const content = document.getElementById('history-content');
+            const arrow = document.getElementById('history-arrow');
+            const isHidden = content.classList.toggle('hidden');
+            arrow.style.transform = isHidden ? '' : 'rotate(180deg)';
+            if (!isHidden) {
+                // Paksa chart menyesuaikan ukuran setelah konten tampil
+                if (typeof tempChart !== 'undefined') tempChart.resize();
+                if (typeof humChart !== 'undefined') humChart.resize();
+            }
+            try { localStorage.setItem('hist-open', isHidden ? '0' : '1'); } catch (e) {}
+        }
+
+        // Buka otomatis saat halaman dimuat bila terakhir dibiarkan terbuka
+        (function () {
+            try {
+                if (localStorage.getItem('hist-open') === '1') {
+                    document.getElementById('history-content').classList.remove('hidden');
+                    document.getElementById('history-arrow').style.transform = 'rotate(180deg)';
+                }
+            } catch (e) {}
+        })();
+
+        // Ringkasan header history dari titik data terakhir saat halaman dimuat
+        (function initHistSummary() {
+            try {
+                const tAvg = JSON.parse(container.dataset.chartTempAvg);
+                const hAvg = JSON.parse(container.dataset.chartHumAvg);
+                const histT = document.getElementById('hist-summary-temp');
+                const histH = document.getElementById('hist-summary-hum');
+                if (tAvg.length && histT) histT.innerText = parseFloat(tAvg[tAvg.length - 1]).toFixed(1) + '°C';
+                if (hAvg.length && histH) histH.innerText = Math.round(hAvg[hAvg.length - 1]) + '%';
+            } catch (e) {}
+        })();
+
+        // Buka otomatis saat halaman dimuat bila terakhir dibiarkan terbuka
+        (function () {
+            try {
+                if (localStorage.getItem('fs-open') === '1') {
+                    document.getElementById('fan-servo-content').classList.remove('hidden');
+                    document.getElementById('fan-servo-arrow').style.transform = 'rotate(180deg)';
+                }
+            } catch (e) {}
+        })();
+
+        // Tampilkan target tersimpan (dari DB) di UI saat halaman dimuat
+        (function applySavedTargets() {
+            document.getElementById('target-temp').innerText = currentTargetTemp.toFixed(1) + ' °C';
+            document.getElementById('target-hum').innerText = Math.round(currentTargetHum) + '%';
+            document.getElementById('target-fan').innerText = currentTargetFan + '%';
+            const fsFan = document.getElementById('fs-summary-fan');
+            if (fsFan) fsFan.innerText = currentTargetFan + '%';
+            if (savedTargets && savedTargets.servo_mode !== null && savedTargets.servo_mode !== undefined) {
+                currentMode = parseInt(savedTargets.servo_mode);
+                updateModeUI(currentMode);
+            }
+            if (savedTargets && savedTargets.servo_interval !== null && savedTargets.servo_interval !== undefined) {
+                currentInterval = parseInt(savedTargets.servo_interval);
+                pendingInterval = currentInterval;
+                updateIntervalUI(currentInterval);
+            }
+        })();
 
         function showToast(msg) {
             const existing = document.querySelector('.toast-servo');

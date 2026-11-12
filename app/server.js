@@ -6,6 +6,7 @@ const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const deviceManager = require('./src/services/DeviceManager');
 const eventBus = require('./src/services/eventBus');
+const deviceSettings = require('./src/services/deviceSettings');
 const pool = require('./src/config/db');
 const webRouter = require('./routes/web');
 const apiRouter = require('./routes/api');
@@ -98,12 +99,20 @@ io.on('connection', (socket) => {
         deviceManager.requestCameraPing(deviceId);
     });
 
-    socket.on('device-control', (payload) => {
+    socket.on('device-control', async (payload) => {
         const { deviceId, command } = payload;
         if (!socket.rooms.has(`device:${deviceId}`)) {
             return socket.emit('error', 'Access denied');
         }
-        deviceManager.publish(deviceId, command);
+        const published = deviceManager.publish(deviceId, command);
+        // Simpan target ke DB walau perangkat offline agar bisa diterapkan saat online kembali
+        let saved = false;
+        try {
+            saved = await deviceSettings.saveSettings(deviceId, command);
+        } catch (e) {
+            console.error('[WS device-control save error]', e.message);
+        }
+        socket.emit('control-ack', { deviceId, published, saved });
     });
 
     socket.on('camera-capture', async (payload) => {
@@ -114,10 +123,10 @@ io.on('connection', (socket) => {
         try {
             const [rows] = await pool.query('SELECT camera_mac FROM device WHERE device_id = ?', [deviceId]);
             const camera_mac = rows.length > 0 ? rows[0].camera_mac : null;
-            const serverUrl = 'http://192.168.215.39:8180';
+            const serverUrl = 'http://10.10.10.30:8180';
             const cmd = JSON.stringify({
                 action: 'capture',
-                incubator_id: parseInt(deviceId),
+                incubator_id: deviceId,
                 camera_mac: camera_mac,
                 server_url: serverUrl,
                 upload_url: `${serverUrl}/api/devices/${deviceId}/camera/upload?cam_mac=${camera_mac || ''}`,

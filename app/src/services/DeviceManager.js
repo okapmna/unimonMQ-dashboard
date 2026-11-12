@@ -2,6 +2,7 @@ const mqtt = require('mqtt');
 const pool = require('../config/db');
 const eventBus = require('./eventBus');
 const { matchDeviceConfig, getTopicConfig } = require('../device-types/registry');
+const deviceSettings = require('./deviceSettings');
 const { handleIncubator } = require('../handlers/incubator');
 const { handleSmartlamp } = require('../handlers/smartlamp');
 const { handleEspcam } = require('../handlers/espcam');
@@ -25,6 +26,7 @@ class DeviceManager {
       const currentDeviceIds = rows.map((r) => r.device_id.toString());
       
       for (const device of rows) {
+        this.deviceInfo[device.device_id] = device;
         if (!this.mqttClients[device.device_id]) {
           this.connectDevice(device);
         }
@@ -44,8 +46,19 @@ class DeviceManager {
   }
 
   connectDevice(device) {
-    const protocol = (device.broker_port == 8883 || device.broker_port == 8884) ? 'wss' : 'ws';
-    const brokerUrl = `${protocol}://${device.broker_url}:${device.broker_port}/mqtt`;
+    let brokerUrl;
+    const port = parseInt(device.broker_port) || 1883;
+    if (port === 1883) {
+      brokerUrl = `mqtt://${device.broker_url}:${port}`;
+    } else if (port === 8883) {
+      brokerUrl = `mqtts://${device.broker_url}:${port}`;
+    } else if (port === 8884) {
+      brokerUrl = `wss://${device.broker_url}:${port}/mqtt`;
+    } else if (port === 8000) {
+      brokerUrl = `ws://${device.broker_url}:${port}/mqtt`;
+    } else {
+      brokerUrl = `wss://${device.broker_url}:${port}/mqtt`;
+    }
     
     console.log(`[Device ${device.device_id}] Connecting to ${brokerUrl}...`);
     
@@ -66,14 +79,26 @@ class DeviceManager {
       lastSave: Date.now()
     };
 
-    client.on('connect', () => {
+    client.on('connect', async () => {
       console.log(`[Device ${device.device_id}] CONNECTED! Waiting for messages...`);
-      
+
       const topicConfig = getTopicConfig(device);
       if (topicConfig) {
         const topics = Array.isArray(topicConfig.subscribe) ? topicConfig.subscribe : [topicConfig.subscribe];
         topics.forEach(t => client.subscribe(t));
         console.log(`[Device ${device.device_id}] Subscribed to: ${topics.join(', ')}`);
+      }
+
+      // Terapkan target yang disimpan saat dashboard (mis. diubah ketika inkubator offline)
+      // begitu perangkat tersambung kembali ke broker.
+      try {
+        const savedCmd = deviceSettings.toCommand(await deviceSettings.getSettings(device.device_id));
+        if (savedCmd && topicConfig) {
+          client.publish(topicConfig.publish, JSON.stringify(savedCmd));
+          console.log(`[Device ${device.device_id}] Saved targets pushed on connect: ${JSON.stringify(savedCmd)}`);
+        }
+      } catch (e) {
+        console.error(`[Device ${device.device_id}] Push saved targets error:`, e.message);
       }
     });
 
@@ -139,7 +164,7 @@ class DeviceManager {
 
     const pingPayload = JSON.stringify({
       action: 'ping',
-      incubator_id: parseInt(deviceId),
+      incubator_id: deviceId,
       timestamp: Date.now()
     });
 

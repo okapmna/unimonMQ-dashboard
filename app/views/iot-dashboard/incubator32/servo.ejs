@@ -165,9 +165,11 @@
         const userRole = container.dataset.role;
         const isViewer = userRole === 'viewer';
 
-        let currentMode = null;
-        let currentInterval = null;
-        let pendingInterval = 1;
+        const savedTargets = <%- JSON.stringify(saved_targets || null) %>;
+        const _numOrNull = (v) => (v !== null && v !== undefined && !Number.isNaN(parseInt(v))) ? parseInt(v) : null;
+        let currentMode = _numOrNull(savedTargets && savedTargets.servo_mode);
+        let currentInterval = _numOrNull(savedTargets && savedTargets.servo_interval);
+        let pendingInterval = currentInterval || 1;
 
         function initUi() {
             if (isViewer) {
@@ -205,6 +207,12 @@
 
         socket.on('connect_error', (err) => {
             updateStatus('Connection Error', 'text-red-600');
+        });
+
+        socket.on('control-ack', ({ published }) => {
+            if (published === false) {
+                showToast('Inkubator offline — perubahan disimpan & otomatis diterapkan saat online');
+            }
         });
 
         socket.on('mqtt-message', ({ topic, data }) => {
@@ -281,6 +289,12 @@
         }
 
         initUi();
+
+        // Tampilkan mode & interval tersimpan di UI saat halaman dimuat
+        (function applySavedTargets() {
+            if (currentMode !== null) updateModeUI(currentMode);
+            if (currentInterval !== null) updateIntervalUI(currentInterval);
+        })();
 
         // Inject toast animation keyframes
         const style = document.createElement('style');
