@@ -1,6 +1,16 @@
 const pool = require('../src/config/db');
+const crypto = require('crypto');
 const deviceManager = require('../src/services/DeviceManager');
 const { getDashboardConfig, matchDeviceConfig, getDeviceTypesForFilter, getDeviceTypeOptions } = require('../src/device-types/registry');
+
+async function generateDeviceId() {
+    for (let i = 0; i < 10; i++) {
+        const candidate = 'inc-' + crypto.randomBytes(3).toString('hex');
+        const [rows] = await pool.query('SELECT 1 FROM device WHERE device_id = ?', [candidate]);
+        if (rows.length === 0) return candidate;
+    }
+    return 'inc-' + crypto.randomBytes(8).toString('hex');
+}
 
 class DeviceController {
     async getDashboard(req, res) {
@@ -51,11 +61,11 @@ class DeviceController {
             
             if (req.body.add_device !== undefined) {
                 const { device_name, device_type, broker_url, mq_user, mq_pass, broker_port } = req.body;
-                const [result] = await pool.query(
-                    "INSERT INTO device (device_name, broker_url, mq_user, mq_pass, device_type, broker_port) VALUES (?, ?, ?, ?, ?, ?)",
-                    [device_name, broker_url, mq_user, mq_pass, device_type, broker_port]
+                const newDeviceId = await generateDeviceId();
+                await pool.query(
+                    "INSERT INTO device (device_id, device_name, broker_url, mq_user, mq_pass, device_type, broker_port) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    [newDeviceId, device_name, broker_url, mq_user, mq_pass, device_type, broker_port]
                 );
-                const newDeviceId = result.insertId;
                 await pool.query(
                     "INSERT INTO device_user (device_id, user_id, role, shared_by) VALUES (?, ?, 'owner', NULL)",
                     [newDeviceId, id_pemilik]

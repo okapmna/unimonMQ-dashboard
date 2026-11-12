@@ -5,13 +5,13 @@
  * Penggunaan:
  *   node simulate_camera.js [INCUBATOR_ID] [CAM_MAC]
  * Contoh:
- *   node simulate_camera.js 14 cam-d4e5f6
+ *   node simulate_camera.js inc-312fb4 cam-d4e5f6
  */
 
 const mqtt = require('mqtt');
 const http = require('http');
 
-const INCUBATOR_ID = process.argv[2] || 14;
+const INCUBATOR_ID = process.argv[2] || 'inc-312fb4';
 const CAM_MAC = process.argv[3] || 'cam-d4e5f6';
 const BROKER_URL = process.env.BROKER_URL || 'mqtt://broker.hivemq.com:1883';
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:8080';
@@ -42,10 +42,10 @@ client.on('connect', () => {
     });
 
     // Kirim heartbeat online
-    client.publish(TOPIC_CAM_DATA, JSON.stringify({
-        status: 'cam_online',
-        camera_mac: CAM_MAC,
-        incubator_id: parseInt(INCUBATOR_ID),
+        client.publish(TOPIC_CAM_DATA, JSON.stringify({
+            status: 'cam_online',
+            camera_mac: CAM_MAC,
+            incubator_id: INCUBATOR_ID,
         ip: '192.168.1.199',
         rssi: -48,
         uptime: 10
@@ -120,7 +120,7 @@ async function simulateCaptureAndUpload(targetIncId) {
             client.publish(TOPIC_CAM_DATA, JSON.stringify({
                 status: 'captured',
                 camera_mac: CAM_MAC,
-                incubator_id: parseInt(targetIncId),
+                incubator_id: targetIncId,
                 size: dummyJpeg.length,
                 http_code: res.statusCode
             }));

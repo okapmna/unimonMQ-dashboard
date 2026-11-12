@@ -21,7 +21,7 @@ INSERT INTO `user` (`user_id`, `user_name`, `password`) VALUES
 
 -- Table structure for `device`
 CREATE TABLE `device` (
-  `device_id` int(10) NOT NULL,
+  `device_id` varchar(32) NOT NULL,
   `broker_url` varchar(500) NOT NULL,
   `mq_pass` varchar(20) DEFAULT NULL,
   `mq_user` varchar(20) DEFAULT NULL,
@@ -31,9 +31,9 @@ CREATE TABLE `device` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `device` (`device_id`, `broker_url`, `mq_pass`, `mq_user`, `device_type`, `device_name`, `broker_port`) VALUES
-(14, 'test.mosquitto.org', '', '', 'esp32-inkubator', 'Inkubator Ternak 1', '8080'),
-(19, '000000000000000.s1.eu.hivemq.cloud', '54321JJJ', 'cihuyyy', 'esp32-inkubator', 'Inkubator burung', '8884'),
-(20, '0000000000000000.s1.eu.hivemq.cloud', '54321JJJ', 'itsabirds', 'esp32-inkubator', 'Inkubator burung', '8884');
+('inc-312fb4', 'test.mosquitto.org', '', '', 'esp32-inkubator', 'Inkubator Ternak 1', '8080'),
+('inc-8a3f52', '000000000000000.s1.eu.hivemq.cloud', '54321JJJ', 'cihuyyy', 'esp32-inkubator', 'Inkubator burung', '8884'),
+('inc-5d9c1b', '0000000000000000.s1.eu.hivemq.cloud', '54321JJJ', 'itsabirds', 'esp32-inkubator', 'Inkubator burung', '8884');
 
 -- Table structure for `user_tokens`
 CREATE TABLE `user_tokens` (
@@ -63,17 +63,13 @@ ALTER TABLE `user_tokens`
 ALTER TABLE `user`
   MODIFY `user_id` int(10) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
--- AUTO_INCREMENT for `device`
-ALTER TABLE `device`
-  MODIFY `device_id` int(10) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
-
 -- AUTO_INCREMENT for `user_tokens`
 ALTER TABLE `user_tokens`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 -- Junction table for device-user many-to-many relationship
 CREATE TABLE `device_user` (
-  `device_id` int(10) NOT NULL,
+  `device_id` varchar(32) NOT NULL,
   `user_id` int(10) NOT NULL,
   `role` enum('owner', 'viewer', 'operator') NOT NULL DEFAULT 'viewer',
   `shared_by` int(10) DEFAULT NULL,
@@ -94,7 +90,7 @@ ALTER TABLE `user_tokens`
 -- Table structure for `device_logs`
 CREATE TABLE `device_logs` (
   `log_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `device_id` int(10) NOT NULL,
+  `device_id` varchar(32) NOT NULL,
   `data` json NOT NULL, 
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`log_id`),
@@ -104,8 +100,8 @@ CREATE TABLE `device_logs` (
 -- Table structure for `camera_captures`
 CREATE TABLE IF NOT EXISTS `camera_captures` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `device_id` int(10) NOT NULL,
-  `incubator_id` int(10) DEFAULT NULL,
+  `device_id` varchar(32) NOT NULL,
+  `incubator_id` varchar(32) DEFAULT NULL,
   `filename` varchar(255) NOT NULL,
   `filepath` varchar(255) NOT NULL,
   `filesize` int(11) DEFAULT 0,

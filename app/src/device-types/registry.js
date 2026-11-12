@@ -75,8 +75,8 @@ function getTopicConfig(device) {
   const config = matchDeviceConfig(device.device_type);
   if (!config) return null;
   return {
-    subscribe: config.topics.subscribe(device.device_id),
-    publish: config.topics.publish(device.device_id),
+    subscribe: config.topics.subscribe(device),
+    publish: config.topics.publish(device),
   };
 }
 

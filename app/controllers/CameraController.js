@@ -16,7 +16,7 @@ class CameraController {
       
       // Jika identifier berupa string MAC (misal "cam-xxx" atau "e8:6b:..."), cari device inkubatornya
       let device = null;
-      if (deviceId && !isNaN(deviceId)) {
+      if (deviceId) {
         const [deviceRows] = await pool.query('SELECT * FROM device WHERE device_id = ?', [deviceId]);
         if (deviceRows.length > 0) {
           device = deviceRows[0];
@@ -71,7 +71,7 @@ class CameraController {
       // Tentukan apakah ada inkubator terkait
       let incubatorId = device.linked_incubator_id || device.device_id;
       if (req.query.incubator_id) {
-        incubatorId = parseInt(req.query.incubator_id) || incubatorId;
+        incubatorId = req.query.incubator_id;
       }
 
       const triggerSource = req.headers['x-trigger'] || req.query.trigger || 'esp32-auto';
@@ -87,7 +87,7 @@ class CameraController {
 
       const captureRecord = {
         id: insertResult.insertId,
-        device_id: parseInt(deviceId),
+        device_id: deviceId,
         incubator_id: incubatorId,
         filename,
         filepath: publicPath,
@@ -105,7 +105,7 @@ class CameraController {
         io.to(`device:${deviceId}`).emit('camera-photo-received', captureRecord);
         io.to(`device:${deviceId}`).emit('camera-status', { status: 'idle', message: 'Foto berhasil disimpan' });
 
-        if (incubatorId && incubatorId !== parseInt(deviceId)) {
+        if (incubatorId && String(incubatorId) !== String(deviceId)) {
           io.to(`device:${incubatorId}`).emit('camera-photo-received', captureRecord);
         }
       }
@@ -159,13 +159,26 @@ class CameraController {
       // Sinkronkan device di MQTT DeviceManager agar langganan topik camera/<mac>/data aktif
       deviceManager.syncDevices();
 
+      // Kirim event pairing via MQTT ke topik unik kamera agar disimpan ke Flash ESP32
+      const protocol = req.protocol || 'http';
+      const hostHeader = req.get('host') || '10.10.10.30:8180';
+      const serverUrl = hostHeader.includes('localhost') ? 'http://10.10.10.30:8180' : `${protocol}://${hostHeader}`;
+
+      const pairPayload = JSON.stringify({
+        action: 'pair',
+        incubator_id: deviceId,
+        server_url: serverUrl,
+        timestamp: Date.now()
+      });
+      deviceManager.publish(deviceId, pairPayload, `camera/${cleanMac}/con`);
+
       console.log(`[Camera Pairing] Incubator ${deviceId} paired with Camera MAC: ${cleanMac}`);
 
       // Broadcast update ke Socket.IO
       const io = req.app.get('io');
       if (io) {
         io.to(`device:${deviceId}`).emit('camera-paired', {
-          deviceId: parseInt(deviceId),
+          deviceId,
           camera_mac: cleanMac
         });
       }
@@ -211,12 +224,22 @@ class CameraController {
 
       deviceManager.syncDevices();
 
+      // Beritahu modul kamera bahwa sandingan dilepas
+      if (prevMac) {
+        const unpairPayload = JSON.stringify({
+          action: 'unpair',
+          incubator_id: 0,
+          timestamp: Date.now()
+        });
+        deviceManager.publish(deviceId, unpairPayload, `camera/${prevMac}/con`);
+      }
+
       console.log(`[Camera Unpairing] Incubator ${deviceId} unpaired from Camera MAC: ${prevMac}`);
 
       const io = req.app.get('io');
       if (io) {
         io.to(`device:${deviceId}`).emit('camera-unpaired', {
-          deviceId: parseInt(deviceId)
+          deviceId
         });
       }
 
@@ -258,14 +281,14 @@ class CameraController {
       const device = deviceRows[0];
 
       const protocol = req.protocol || 'http';
-      const hostHeader = req.get('host') || '192.168.215.39:8180';
+      const hostHeader = req.get('host') || '10.10.10.30:8180';
       // Jika diakses via localhost di laptop, berikan IP LAN laptop agar bisa dijangkau ESP32
-      const serverUrl = hostHeader.includes('localhost') ? 'http://192.168.215.39:8180' : `${protocol}://${hostHeader}`;
+      const serverUrl = hostHeader.includes('localhost') ? 'http://10.10.10.30:8180' : `${protocol}://${hostHeader}`;
 
       // Publish perintah capture ke ESP32-S3 CAM via MQTT
       const commandPayload = {
         action: 'capture',
-        incubator_id: parseInt(deviceId),
+        incubator_id: deviceId,
         camera_mac: device.camera_mac || null,
         server_url: serverUrl,
         upload_url: `${serverUrl}/api/devices/${deviceId}/camera/upload?cam_mac=${device.camera_mac || ''}`,
@@ -303,8 +326,11 @@ class CameraController {
 
       return res.json({
         success: true,
-        message: 'Capture trigger sent to camera',
+        message: published
+          ? 'Capture trigger sent to camera'
+          : 'Perintah capture dikirim, TAPI MQTT broker belum terhubung untuk device ini. Cek koneksi broker di server.',
         published,
+        mqtt_connected: !!published,
         camera_mac: device.camera_mac || null,
         timestamp: commandPayload.timestamp
       });
