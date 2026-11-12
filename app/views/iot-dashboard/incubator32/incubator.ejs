@@ -566,44 +566,105 @@
             </div>
         </div>
 
-        <div class="flex flex-col gap-6 sm:gap-12 mt-6 sm:mt-12">
-            <div
-                class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xs sm:text-sm font-bold uppercase text-gray-500 tracking-wider">Temperature History
-                    </h3>
-                    <div class="flex gap-4 text-[10px] font-bold uppercase tracking-tight">
-                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#ef4444] rounded-full"></span>
-                            High</div>
-                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#386628] rounded-full"></span>
-                            Avg</div>
-                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#3b82f6] rounded-full"></span>
-                            Low</div>
+        <!-- KARTU GABUNGAN TEMPERATURE + HUMIDITY HISTORY (bisa dibuka/ditutup) -->
+        <div
+            class="mt-6 sm:mt-12 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-2xl transition-all duration-300">
+            <!-- Header: klik untuk buka/tutup -->
+            <button type="button" onclick="toggleHistory()"
+                class="w-full flex items-center justify-between gap-3 cursor-pointer select-none">
+                <span
+                    class="flex items-center gap-1.5 sm:gap-3 font-bold uppercase tracking-wide text-[11px] sm:text-base text-left">
+                    <span class="flex items-center gap-0.5 sm:gap-1">
+                        <!-- Ikon termometer -->
+                        <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 14.76V5a2 2 0 10-4 0v9.76a4 4 0 104 0z" />
+                        </svg>
+                        <!-- Ikon tetes air -->
+                        <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0L12 2.69z" />
+                        </svg>
+                    </span>
+                    <h2>TEMPERATURE &amp; HUMIDITY HISTORY</h2>
+                    <span
+                        class="hidden lg:inline-flex items-center gap-2 normal-case tracking-normal font-semibold text-xs text-gray-400 ml-1">
+                        <span id="hist-summary-temp" class="font-bold text-gray-800">--</span>
+                        <span class="text-gray-300">|</span>
+                        <span id="hist-summary-hum" class="font-bold text-gray-800">--</span>
+                    </span>
+                </span>
+                <svg id="history-arrow" class="w-5 h-5 text-gray-500 shrink-0 transition-transform duration-200" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+
+            <!-- Konten: tersembunyi saat halaman dimuat, buka lewat header -->
+            <div id="history-content" class="hidden mt-4 sm:mt-6">
+                <!-- Bar pemilih tanggal -->
+                <div
+                    class="flex flex-wrap items-center gap-2.5 sm:gap-3 bg-gray-50 rounded-xl border border-gray-100 p-3 mb-5 sm:mb-8">
+                    <div class="p-1.5 bg-cream-bg text-accent-brown rounded-lg shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
                     </div>
-                </div>
-                <div class="relative w-full h-64 sm:h-80">
-                    <canvas id="tempChart"></canvas>
-                </div>
-            </div>
-            <div
-                class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-[10px_10px_20px_rgba(0,0,0,0.05)] border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xs sm:text-sm font-bold uppercase text-gray-500 tracking-wider">Humidity History
-                    </h3>
-                    <div class="flex gap-4 text-[10px] font-bold uppercase tracking-tight">
-                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#f59e0b] rounded-full"></span>
-                            High</div>
-                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#1E88E5] rounded-full"></span>
-                            Avg</div>
-                        <div class="flex items-center gap-1.5"><span class="w-3 h-1 bg-[#6366f1] rounded-full"></span>
-                            Low</div>
+                    <div class="flex-1 min-w-[180px]">
+                        <p id="log-range-label" class="text-xs sm:text-sm font-semibold text-gray-800">15 log terakhir
+                        </p>
                     </div>
+                    <input type="date" id="log-date" max="<%= new Date().toISOString().slice(0,10) %>"
+                        class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs sm:text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent-brown/40">
+                    <button onclick="loadHistoryToday()"
+                        class="rounded-xl bg-[#C69C6D] hover:bg-[#b8885a] text-black px-3 py-2 text-xs sm:text-sm font-bold shadow-sm shadow-batch-brown/30 transition-colors">Hari
+                        Ini</button>
+                    <button onclick="loadHistoryLatest()"
+                        class="rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 text-xs sm:text-sm font-bold transition-colors">Terbaru</button>
                 </div>
-                <div class="relative w-full h-64 sm:h-80">
-                    <canvas id="humChart"></canvas>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10">
+                    <!-- Temperature -->
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="text-[10px] sm:text-xs font-bold uppercase text-gray-500 tracking-wider">Temperature
+                            </h4>
+                            <div class="flex gap-2.5 sm:gap-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-tight">
+                                <div class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-[#ef4444] rounded-full"></span>
+                                    High</div>
+                                <div class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-[#386628] rounded-full"></span>
+                                    Avg</div>
+                                <div class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-[#3b82f6] rounded-full"></span>
+                                    Low</div>
+                            </div>
+                        </div>
+                        <div class="relative w-full h-56 sm:h-72">
+                            <canvas id="tempChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Humidity -->
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="text-[10px] sm:text-xs font-bold uppercase text-gray-500 tracking-wider">Humidity
+                            </h4>
+                            <div class="flex gap-2.5 sm:gap-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-tight">
+                                <div class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-[#f59e0b] rounded-full"></span>
+                                    High</div>
+                                <div class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-[#1E88E5] rounded-full"></span>
+                                    Avg</div>
+                                <div class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-[#6366f1] rounded-full"></span>
+                                    Low</div>
+                            </div>
+                        </div>
+                        <div class="relative w-full h-56 sm:h-72">
+                            <canvas id="humChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- MODAL INFO / PANDUAN MODUL ESP32-S3 CAM -->
@@ -795,6 +856,82 @@
 
         let lastChartUpdate = Date.now();
 
+        // --- Pemuat riwayat log per tanggal ---
+        const logDateInput = document.getElementById('log-date');
+        const logRangeLabel = document.getElementById('log-range-label');
+
+        function fmtTanggalLabel(dateStr, count) {
+            const d = new Date(dateStr + 'T00:00:00');
+            const hari = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            return `${hari} — ${count} titik data`;
+        }
+
+        function applyChartData(logs) {
+            // Urutkan lama -> baru untuk sumbu X
+            logs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            const labels = logs.map(l => new Date(l.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
+            const pick = (key) => logs.map(l => (l.data[key] && l.data[key].avg !== undefined) ? l.data[key].avg : null);
+            const tAvg = pick('temp'), tHigh = logs.map(l => l.data.temp ? l.data.temp.high : null), tLow = logs.map(l => l.data.temp ? l.data.temp.low : null);
+            const hAvg = logs.map(l => l.data.hum ? l.data.hum.avg : null), hHigh = logs.map(l => l.data.hum ? l.data.hum.high : null), hLow = logs.map(l => l.data.hum ? l.data.hum.low : null);
+
+            tempChart.data.labels = labels;
+            tempChart.data.datasets[0].data = tHigh;
+            tempChart.data.datasets[1].data = tAvg;
+            tempChart.data.datasets[2].data = tLow;
+            tempChart.update();
+
+            humChart.data.labels = labels;
+            humChart.data.datasets[0].data = hHigh;
+            humChart.data.datasets[1].data = hAvg;
+            humChart.data.datasets[2].data = hLow;
+            humChart.update();
+        }
+
+        async function loadHistory(dateStr) {
+            if (!logRangeLabel) return;
+            try {
+                logRangeLabel.classList.add('text-gray-400');
+                logRangeLabel.innerText = 'Memuat log...';
+                const url = dateStr
+                    ? `/api/devices/${deviceId}/logs?date=${encodeURIComponent(dateStr)}`
+                    : `/api/devices/${deviceId}/logs`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const logs = await res.json();
+
+                applyChartData(logs);
+
+                if (dateStr) {
+                    logRangeLabel.classList.remove('text-gray-400');
+                    logRangeLabel.innerText = logs.length
+                        ? fmtTanggalLabel(dateStr, logs.length)
+                        : 'Tidak ada log pada tanggal ini';
+                } else {
+                    logRangeLabel.classList.remove('text-gray-400');
+                    logRangeLabel.innerText = logs.length
+                        ? `${logs.length} log terakhir (lintas hari)`
+                        : 'Belum ada log tersimpan';
+                }
+            } catch (e) {
+                logRangeLabel.classList.remove('text-gray-400');
+                logRangeLabel.innerText = 'Gagal memuat log: ' + e.message;
+            }
+        }
+
+        function loadHistoryToday() {
+            logDateInput.value = logDateInput.max || new Date().toISOString().slice(0, 10);
+            loadHistory(logDateInput.value);
+        }
+
+        function loadHistoryLatest() {
+            logDateInput.value = '';
+            loadHistory(null);
+        }
+
+        if (logDateInput) {
+            logDateInput.addEventListener('change', () => loadHistory(logDateInput.value || null));
+        }
+
         // Servo state
         let currentMode = null;
         let currentInterval = null;
@@ -842,9 +979,13 @@
         socket.on('mqtt-message', ({ topic, data }) => {
             if (data.temperature !== undefined) {
                 document.getElementById('suhu').innerText = parseFloat(data.temperature).toFixed(2);
+                const histT = document.getElementById('hist-summary-temp');
+                if (histT) histT.innerText = parseFloat(data.temperature).toFixed(1) + '°C';
             }
             if (data.humidity !== undefined) {
                 document.getElementById('kelembapan').innerText = parseFloat(data.humidity).toFixed(2);
+                const histH = document.getElementById('hist-summary-hum');
+                if (histH) histH.innerText = Math.round(parseFloat(data.humidity)) + '%';
             }
             if (data.target_temp !== undefined || data.t_temp !== undefined) {
                 currentTargetTemp = parseFloat(data.target_temp || data.t_temp);

@@ -58,17 +58,28 @@ router.post('/devices/update', authenticateToken, async (req, res) => {
     }
 });
 
-// API: Get Logs for Charts
-router.get('/devices/:id/logs', authenticateToken, async (req, res) => {
+// API: Get Logs for Charts (opsional filter ?date=YYYY-MM-DD)
+router.get('/devices/:id/logs', optionalAuth, async (req, res) => {
     const device_id = req.params.id;
+    const user_id = (req.user && req.user.user_id) || (req.session && req.session.user_id);
     try {
         const [accessCheck] = await pool.query(
             "SELECT 1 FROM device_user WHERE device_id = ? AND user_id = ?",
-            [device_id, req.user.user_id]
+            [device_id, user_id]
         );
         if (accessCheck.length === 0) return res.status(403).json({ error: 'Access denied' });
-        
-        const [logs] = await pool.query("SELECT data, created_at FROM device_logs WHERE device_id = ? ORDER BY created_at DESC LIMIT 50", [device_id]);
+
+        // Filter tanggal opsional: hanya log pada hari yang dipilih
+        const dateFilter = (req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) ? req.query.date : null;
+        let sql = "SELECT data, created_at FROM device_logs WHERE device_id = ? AND JSON_EXTRACT(data, '$.temp.avg') IS NOT NULL";
+        const params = [device_id];
+        if (dateFilter) {
+            sql += " AND DATE(created_at) = ?";
+            params.push(dateFilter);
+        }
+        sql += " ORDER BY created_at DESC LIMIT 200";
+
+        const [logs] = await pool.query(sql, params);
         const processedLogs = logs.map(row => ({ created_at: row.created_at, data: JSON.parse(row.data) }));
         res.json(processedLogs);
     } catch (e) {
