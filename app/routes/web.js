@@ -5,8 +5,34 @@ const DeviceController = require('../controllers/DeviceController');
 const CameraController = require('../controllers/CameraController');
 const { checkWebAuth } = require('../middleware/auth');
 const pool = require('../src/config/db');
-const { matchDeviceConfig } = require('../src/device-types/registry');
+const { matchDeviceConfig, getDashboardConfig } = require('../src/device-types/registry');
 const { loadDeviceViewData } = require('../src/device-types/loaders');
+
+// Sidebar: daftar perangkat user untuk panel navigasi
+router.use(async (req, res, next) => {
+    if (!req.session || !req.session.user_id) return next();
+    try {
+        const [rows] = await pool.query(`
+            SELECT d.device_id, d.device_name, d.device_type
+            FROM device d
+            JOIN device_user du ON d.device_id = du.device_id
+            JOIN user u ON du.user_id = u.user_id
+            WHERE u.user_id = ?
+            ORDER BY d.device_name
+        `, [req.session.user_id]);
+        res.locals.sidebar_devices = rows.map(d => {
+            const dash = getDashboardConfig(d);
+            return {
+                device_id: d.device_id,
+                device_name: d.device_name,
+                link: dash ? dash.link : '/device/' + d.device_id
+            };
+        });
+    } catch (e) {
+        res.locals.sidebar_devices = [];
+    }
+    next();
+});
 
 // Public Routes
 router.get('/', AuthController.renderLogin);

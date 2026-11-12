@@ -1,0 +1,90 @@
+<!-- Mobile Topbar -->
+<header class="lg:hidden fixed top-0 inset-x-0 z-40 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4">
+    <button onclick="toggleSidebar(true)" class="p-2 -ml-1 text-gray-600 hover:text-dark-text" aria-label="Buka menu">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+    </button>
+    <a href="/dashboard" class="text-lg font-extrabold tracking-tight text-accent-green">UNIMQ</a>
+    <a href="/profile" class="p-2 -mr-1 text-gray-500 hover:text-dark-text" aria-label="Profil">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+    </a>
+</header>
+
+<!-- Overlay (mobile) -->
+<div id="sidebar-overlay" class="fixed inset-0 z-40 bg-black/40 hidden lg:hidden" onclick="toggleSidebar(false)"></div>
+
+<!-- Sidebar -->
+<aside id="app-sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 flex flex-col -translate-x-full lg:translate-x-0 transition-transform duration-200">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <a href="/dashboard" class="text-xl font-extrabold tracking-tight text-accent-green">UNIMQ</a>
+        <button onclick="toggleSidebar(false)" class="lg:hidden p-1.5 text-gray-400 hover:text-dark-text" aria-label="Tutup menu">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+    <nav class="flex-1 overflow-y-auto px-3 py-4">
+        <a href="/dashboard" data-nav="/dashboard" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 hover:text-dark-text transition-colors">
+            <svg class="w-[18px] h-[18px] text-accent-brown" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M3 4a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 13a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zM11 4a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V4zM11 13a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
+            </svg>
+            Dashboard
+        </a>
+        <p class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">Perangkat Saya</p>
+        <% (typeof sidebar_devices !== 'undefined' ? sidebar_devices : []).forEach(d => { %>
+        <a href="<%= d.link %>" data-nav="<%= d.link %>" class="nav-link flex flex-col px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors group">
+            <span class="text-sm font-semibold text-gray-700 group-hover:text-dark-text truncate"><%= d.device_name %></span>
+            <span class="text-[10px] font-mono text-gray-400 truncate"><%= d.device_id %></span>
+        </a>
+        <% }) %>
+        <% if (typeof sidebar_devices === 'undefined' || !sidebar_devices.length) { %>
+        <p class="px-3 text-xs text-gray-400">Belum ada perangkat.</p>
+        <% } %>
+    </nav>
+    <div class="px-3 py-3 border-t border-gray-100">
+        <a href="/profile" data-nav="/profile" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 hover:text-dark-text transition-colors">
+            <svg class="w-[18px] h-[18px] text-accent-brown" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Profil
+        </a>
+        <a href="/logout" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors">
+            <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Keluar
+        </a>
+    </div>
+</aside>
+
+<script>
+    function toggleSidebar(open) {
+        const s = document.getElementById('app-sidebar');
+        const o = document.getElementById('sidebar-overlay');
+        if (!s) return;
+        if (open) {
+            s.classList.remove('-translate-x-full');
+            if (o) o.classList.remove('hidden');
+        } else {
+            s.classList.add('-translate-x-full');
+            if (o) o.classList.add('hidden');
+        }
+    }
+    (function highlightNav() {
+        const path = window.location.pathname;
+        document.querySelectorAll('.nav-link').forEach(a => {
+            const target = a.getAttribute('data-nav');
+            const isDevice = target.startsWith('/device/');
+            const active = isDevice
+                ? (path === target || path.startsWith(target + '/'))
+                : path === target;
+            if (active) {
+                a.classList.remove('text-gray-600');
+                a.classList.add('bg-cream-bg', 'text-accent-brown');
+            }
+        });
+    })();
+</script>

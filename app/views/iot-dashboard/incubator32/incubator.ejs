@@ -27,43 +27,6 @@
     </script>
 
     <style>
-        .back-btn {
-            position: fixed;
-            top: 12px;
-            left: 12px;
-            z-index: 50;
-        }
-
-        @media (min-width: 640px) {
-            .back-btn {
-                top: 20px;
-                left: 20px;
-            }
-        }
-
-        .back-btn a {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #fff;
-            padding: 10px 16px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transition: 0.3s;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .back-btn a span {
-            display: none;
-        }
-
-        @media (min-width: 640px) {
-            .back-btn a span {
-                display: inline;
-            }
-        }
-
         /* Custom Batch Dropdown */
         .batch-dropdown {
             position: relative;
@@ -133,17 +96,10 @@
     </style>
 
 
-    <div class="back-btn">
-        <a href="/dashboard">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
-                </path>
-            </svg>
-            <span class="font-semibold">Back</span>
-        </a>
-    </div>
+    <%- include('../../partials/sidebar') %>
 
-    <div class="max-w-5xl mx-auto w-full mt-10 sm:mt-0">
+    <div class="lg:pl-64">
+    <div class="max-w-5xl mx-auto w-full px-4 sm:px-6 pt-20 sm:pt-24 lg:pt-10">
         <header
             class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 sm:mb-12 gap-4 sm:gap-6 border-b border-gray-300 pb-4 sm:pb-8">
             <div>

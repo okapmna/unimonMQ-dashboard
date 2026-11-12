@@ -1,15 +1,8 @@
 <%- include('partials/header') %>
-<nav class="flex justify-between items-center px-6 py-6 max-w-7xl mx-auto">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-accent-green">UNIMQ</h1>
-            <p class="text-sm text-muted-text font-medium">Profile Settings</p>
-        </div>
-        <div class="flex items-center gap-4">
-            <a href="/dashboard" class="text-gray-600 font-semibold hover:text-black transition-colors text-sm px-4 py-2 bg-gray-100 rounded-lg">Kembali</a>
-        </div>
-    </nav>
+<%- include('partials/sidebar') %>
 
-    <main class="max-w-2xl mx-auto px-6 mt-8">
+    <div class="lg:pl-64">
+    <main class="max-w-2xl mx-auto px-6 mt-16 lg:mt-8">
         <div class="mb-8">
             <h2 class="text-4xl font-bold mt-1">My Profile</h2>
             <p class="text-muted-text mt-2 font-medium">Kelola informasi akun dan kata sandi Anda.</p>
@@ -86,6 +79,7 @@
             </form>
         </div>
     </main>
+    </div>
 
     <script>
         function togglePassword(inputId, iconId) {
