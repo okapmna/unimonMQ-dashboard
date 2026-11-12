@@ -8,7 +8,7 @@ const loaders = {
     const saved_targets = await deviceSettings.getSettings(deviceId);
 
     const [logs] = await pool.query(
-      "SELECT data, created_at FROM device_logs WHERE device_id = ? ORDER BY created_at DESC LIMIT 15",
+      "SELECT data, created_at FROM device_logs WHERE device_id = ? AND JSON_EXTRACT(data, '$.temp.avg') IS NOT NULL ORDER BY created_at DESC LIMIT 15",
       [deviceId]
     );
 

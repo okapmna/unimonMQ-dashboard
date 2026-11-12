@@ -48,26 +48,25 @@ async function handleIncubator(device, data, buffer) {
 
   const tempDiff = Math.abs(tempStats.avg - buffer.lastTemp);
   const humDiff = Math.abs(humStats.avg - buffer.lastHum);
+  const drastic = tempDiff >= 1 || humDiff >= 10;
 
-  if (tempDiff >= 1 || humDiff >= 10) {
-    const summary = {
-      temp: tempStats,
-      hum: humStats,
-      samples: buffer.temps.length,
-      reason: "drastic_change"
-    };
+  // Simpan ringkasan tiap 5 menit. Penanda 'drastic_change' dipertahankan agar
+  // lonjakan bisa dibedakan dari data rutin, tapi data stabil tetap tersimpan
+  // sebagai sejarah grafik.
+  const summary = {
+    temp: tempStats,
+    hum: humStats,
+    samples: buffer.temps.length,
+    reason: drastic ? 'drastic_change' : 'interval_5min'
+  };
 
-    await pool.query('INSERT INTO device_logs (device_id, data) VALUES (?, ?)',
-      [device.device_id, JSON.stringify(summary)]);
+  await pool.query('INSERT INTO device_logs (device_id, data) VALUES (?, ?)',
+    [device.device_id, JSON.stringify(summary)]);
 
-    console.log(`[Device ${device.device_id}] LOG SAVED (drastic change):`, JSON.stringify(summary));
+  console.log(`[Device ${device.device_id}] LOG SAVED (${summary.reason}):`, JSON.stringify(summary));
 
-    buffer.lastTemp = tempStats.avg;
-    buffer.lastHum = humStats.avg;
-  } else {
-    console.log(`[Device ${device.device_id}] No drastic change in 5 min. Discarding ${buffer.temps.length} samples.`);
-  }
-
+  buffer.lastTemp = tempStats.avg;
+  buffer.lastHum = humStats.avg;
   buffer.temps = [];
   buffer.hums = [];
   buffer.lastSave = now;
