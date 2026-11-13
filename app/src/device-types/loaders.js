@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const { matchDeviceConfig } = require('./registry');
 const deviceSettings = require('../services/deviceSettings');
+const fertilityService = require('../services/fertility');
 
 const loaders = {
   incubator: async (deviceId) => {
@@ -42,7 +43,23 @@ const loaders = {
         "SELECT * FROM camera_captures WHERE incubator_id = ? OR device_id = ? ORDER BY captured_at DESC LIMIT 50",
         [deviceId, deviceId]
       );
-      camPhotos = photos;
+      camPhotos = photos.map((photo) => {
+        let fertility = null;
+        if (photo.fertility_result) {
+          try {
+            fertility = typeof photo.fertility_result === 'string'
+              ? JSON.parse(photo.fertility_result)
+              : photo.fertility_result;
+          } catch (e) {}
+        }
+        if (!fertility && photo.fertility_status === 'processing') {
+          fertility = { status: 'processing' };
+        }
+        if (!fertility && photo.fertility_status === 'failed') {
+          fertility = { status: 'failed', error: photo.fertility_error || 'Analisis gagal' };
+        }
+        return { ...photo, fertility };
+      });
     } catch (err) {
       console.error('[Loader incubator camera photos error]:', err.message);
     }
@@ -58,7 +75,8 @@ const loaders = {
       chart_hum_low: chart_hum_low.reverse(),
       latestCamPhoto: camPhotos.length > 0 ? camPhotos[0] : null,
       recentCamPhotos: camPhotos,
-      totalCamPhotos: camPhotos.length
+      totalCamPhotos: camPhotos.length,
+      fertility_enabled: fertilityService.isEnabled()
     };
   },
   smartlamp: async (deviceId) => {

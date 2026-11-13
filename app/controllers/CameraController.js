@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const pool = require('../src/config/db');
 const deviceManager = require('../src/services/DeviceManager');
+const fertility = require('../src/services/fertility');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads', 'captures');
 const SERVER_URL = process.env.SERVER_URL || 'http://10.10.10.30:8180';
@@ -23,6 +24,52 @@ async function getDeviceAccess(deviceId, userId) {
 async function broadcast(req, deviceId, event, payload) {
     const io = req.app.get('io');
     if (io) io.to(`device:${deviceId}`).emit(event, payload);
+}
+
+async function processCaptureFertility(req, photo, buffer, filename, roomId) {
+    if (!fertility.isEnabled()) return;
+
+    try {
+        await pool.query('UPDATE camera_captures SET fertility_status = ? WHERE id = ?', ['processing', photo.id]);
+        broadcast(req, roomId, 'camera-fertility-result', { id: photo.id, status: 'processing' });
+
+        const result = await fertility.analyzeImage(buffer, filename);
+        const first = (result.results && result.results[0]) || result;
+        const summary = result.summary || {};
+
+        let annotatedFilepath = null;
+        const annotatedBuffer = fertility.dataUrlToBuffer(first.annotated || result.annotated);
+        if (annotatedBuffer) {
+            const annotatedName = filename.replace(/\.jpg$/i, '') + '-annotated.jpg';
+            fs.writeFileSync(path.join(UPLOAD_DIR, annotatedName), annotatedBuffer);
+            annotatedFilepath = `/uploads/captures/${annotatedName}`;
+        }
+
+        const payload = {
+            status: 'done',
+            classifier_used: result.classifier_used || null,
+            summary,
+            counts: first.counts || result.counts || null,
+            detections: first.detections || result.detections || [],
+            timing: first.timing || result.timing || null,
+            annotated_filepath: annotatedFilepath,
+        };
+
+        await pool.query(
+            'UPDATE camera_captures SET fertility_status = ?, fertility_result = ?, fertility_annotated_filepath = ?, fertility_error = NULL WHERE id = ?',
+            ['done', JSON.stringify(payload), annotatedFilepath, photo.id]
+        );
+
+        broadcast(req, roomId, 'camera-fertility-result', { id: photo.id, ...payload });
+        console.log(`[Fertility] Capture ${photo.id} analyzed: ${summary.fertile || 0} fertile / ${summary.total_detected || 0} detected`);
+    } catch (e) {
+        console.error(`[Fertility] Capture ${photo.id} failed:`, e.message);
+        await pool.query(
+            'UPDATE camera_captures SET fertility_status = ?, fertility_error = ? WHERE id = ?',
+            ['failed', e.message.slice(0, 255), photo.id]
+        ).catch(() => {});
+        broadcast(req, roomId, 'camera-fertility-result', { id: photo.id, status: 'failed', error: e.message });
+    }
 }
 
 async function pairCamera(req, res) {
@@ -162,6 +209,10 @@ async function uploadCapture(req, res) {
 
         console.log(`[CameraController] Uploaded ${filepath} (${buf.length} bytes) for ${target.device.device_id}`);
         res.json({ success: true, id: photo.id, filename, filepath, filesize: buf.length });
+
+        setImmediate(() => {
+            processCaptureFertility(req, photo, buf, filename, roomId);
+        });
     } catch (e) {
         console.error('[CameraController uploadCapture]', e.message);
         res.status(500).json({ success: false, error: 'Gagal menyimpan foto' });
@@ -199,9 +250,10 @@ async function deleteCapture(req, res) {
         if (rows.length === 0) return res.status(404).json({ success: false, error: 'Foto tidak ditemukan' });
 
         const capture = rows[0];
-        if (capture.filepath && capture.filepath.startsWith('/uploads/')) {
-            const baseDir = path.dirname(path.join(UPLOAD_DIR, '..'));
-            const fullPath = path.join(baseDir, path.normalize(capture.filepath).replace(/^([.][.][/\\])+/, ''));
+        const baseDir = path.dirname(path.join(UPLOAD_DIR, '..'));
+        for (const filepath of [capture.filepath, capture.fertility_annotated_filepath]) {
+            if (!filepath || !filepath.startsWith('/uploads/')) continue;
+            const fullPath = path.join(baseDir, path.normalize(filepath).replace(/^([.][.][/\\])+/, ''));
             if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
         }
 

@@ -11,9 +11,22 @@ services:
       - /usr/src/app/node_modules
     env_file:
       - ./app/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - app-network
+
+  # Egg fertility ML API (optional: docker compose --profile ml up -d)
+  fertility-runner:
+    profiles: ["ml"]
+    build: ../egg-fertility-ml
+    container_name: unimon_fertility
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
     networks:
       - app-network
 

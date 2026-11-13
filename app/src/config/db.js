@@ -152,6 +152,20 @@ async function initDatabaseTables() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
     `);
 
+    // Hasil analisis fertilitas telur dari egg-fertility-ml
+    const fertilityColumns = [
+      ['fertility_status', 'varchar(20) DEFAULT NULL'],
+      ['fertility_result', 'longtext DEFAULT NULL'],
+      ['fertility_annotated_filepath', 'varchar(255) DEFAULT NULL'],
+      ['fertility_error', 'varchar(255) DEFAULT NULL'],
+    ];
+    for (const [name, definition] of fertilityColumns) {
+      const [col] = await pool.query(`SHOW COLUMNS FROM camera_captures LIKE '${name}'`);
+      if (col.length === 0) {
+        await pool.query(`ALTER TABLE camera_captures ADD COLUMN \`${name}\` ${definition}`);
+      }
+    }
+
     // Ensure linked_incubator_id column exists in device table
     const [cols] = await pool.query("SHOW COLUMNS FROM device LIKE 'linked_incubator_id'");
     if (cols.length === 0) {
