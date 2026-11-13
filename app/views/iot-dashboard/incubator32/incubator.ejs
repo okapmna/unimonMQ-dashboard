@@ -503,7 +503,6 @@
                         <div id="inc-fertility-rate" class="text-xl font-bold text-accent-brown">-</div>
                     </div>
                 </div>
-                <p id="inc-fertility-detail" class="mt-3 text-[11px] text-gray-500 italic hidden"></p>
             </div>
         </div>
 
@@ -1375,14 +1374,12 @@
             const panel = document.getElementById('inc-fertility-panel');
             const statusEl = document.getElementById('inc-fertility-status');
             const statsEl = document.getElementById('inc-fertility-stats');
-            const detailEl = document.getElementById('inc-fertility-detail');
             const linkEl = document.getElementById('inc-fertility-annotated-link');
             const retryEl = document.getElementById('inc-fertility-retry');
             if (!panel || !statusEl) return;
 
             panel.classList.remove('hidden');
             statsEl.classList.add('hidden');
-            detailEl.classList.add('hidden');
             linkEl.classList.add('hidden');
             linkEl.href = '#';
             if (retryEl) retryEl.classList.add('hidden');
@@ -1422,10 +1419,6 @@
             statusEl.className = 'text-xs text-emerald-600 mt-0.5 font-semibold';
             statsEl.classList.remove('hidden');
 
-            if (result.classifier_used) {
-                detailEl.innerText = `Model: ${result.classifier_used}`;
-                detailEl.classList.remove('hidden');
-            }
             if (result.annotated_filepath) {
                 linkEl.href = result.annotated_filepath;
                 linkEl.classList.remove('hidden');
@@ -1598,10 +1591,10 @@
             if (camPingTimeout) clearTimeout(camPingTimeout);
             camPingTimeout = setTimeout(() => {
                 if (statusEl && statusEl.innerText.includes('Memeriksa')) {
-                    statusEl.innerText = 'Standby';
-                    statusEl.title = 'Kamera siaga (standby / belum aktif)';
-                    statusEl.className = 'text-[11px] sm:text-xs text-gray-500 truncate';
-                    if (dotEl) dotEl.className = 'w-2 h-2 rounded-full bg-gray-400 shrink-0';
+                    statusEl.innerText = 'Offline';
+                    statusEl.title = 'Kamera tidak terhubung';
+                    statusEl.className = 'text-[11px] sm:text-xs text-red-500 truncate';
+                    if (dotEl) dotEl.className = 'w-2 h-2 rounded-full bg-red-500 shrink-0';
                 }
             }, 6000);
         }
@@ -1612,12 +1605,8 @@
             const dotEl = document.getElementById('inc-cam-status-dot');
 
             if (statusEl) {
-                const parts = [];
-                if (info.ip) parts.push(`IP: ${info.ip}`);
-                if (info.rssi) parts.push(`${info.rssi} dBm`);
-                // Mobile: hanya "Online". Desktop (sm+): tampilkan IP & sinyal.
-                statusEl.innerHTML = `Online<span class="hidden sm:inline">${parts.length ? ' • ' + parts.join(' • ') : ''}</span>`;
-                statusEl.title = parts.join(' • ');
+                statusEl.innerHTML = `Online`;
+                statusEl.title = 'Kamera terhubung';
                 statusEl.className = 'text-[11px] sm:text-xs text-emerald-600 font-semibold truncate';
             }
             if (dotEl) {
