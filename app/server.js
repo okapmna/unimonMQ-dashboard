@@ -166,6 +166,7 @@ eventBus.on('device-data', ({ deviceId, topic, data }) => {
 // Start MQTT Worker
 (async () => {
     console.log('--- MQTT BACKGROUND WORKER STARTED ---');
+    await pool.ready;
     await deviceManager.syncDevices();
     setInterval(() => deviceManager.syncDevices(), 20000);
 })();
