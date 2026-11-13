@@ -21,6 +21,8 @@ async function handleIncubator(device, data, buffer) {
   }
 
   if (!hasData) {
+    // Heartbeat dari perangkat (sensor bermasalah / status online): bukan error
+    if (data.sensor_ok === false || data.status === 'online') return;
     console.log(`[Device ${device.device_id}] Warning: Received data but 'temperature' or 'humidity' keys are missing!`);
     return;
   }
