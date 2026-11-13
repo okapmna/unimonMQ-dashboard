@@ -2,6 +2,7 @@
 *.log
 .agents
 backup*.sql
+database/unimq_full_migration.sql
 *.env
 node_modules/
 dashboard_plan.md
