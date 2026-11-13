@@ -32,7 +32,9 @@ router.post('/devices/:id/camera/pair', optionalAuth, (req, res) => CameraContro
 router.delete('/devices/:id/camera/unpair', optionalAuth, (req, res) => CameraController.unpairCamera(req, res));
 
 router.post('/devices/:id/camera/capture', optionalAuth, (req, res) => CameraController.triggerCapture(req, res));
+router.post('/devices/:id/camera/web-upload', optionalAuth, (req, res) => CameraController.webUploadCapture(req, res));
 router.delete('/devices/:id/camera/captures/:captureId', optionalAuth, (req, res) => CameraController.deleteCapture(req, res));
+router.post('/devices/:id/camera/captures/:captureId/reanalyze', optionalAuth, (req, res) => CameraController.reanalyzeCapture(req, res));
 
 // Protected API
 router.get('/devices', authenticateToken, DeviceController.apiGetDevices);

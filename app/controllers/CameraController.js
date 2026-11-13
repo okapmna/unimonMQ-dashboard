@@ -219,6 +219,104 @@ async function uploadCapture(req, res) {
     }
 }
 
+// Upload foto manual dari dashboard web (kamera perangkat / file upload)
+// Body: raw image/jpeg (diparse oleh express.raw)
+// Query: ?source=manual (ambil foto manual) | ?source=upload (unggah file)
+async function webUploadCapture(req, res) {
+    const deviceId = req.params.id;
+    const userId = getUserId(req);
+    const triggerSource = req.query.source === 'upload' ? 'upload' : 'manual';
+
+    try {
+        const role = await getDeviceAccess(deviceId, userId);
+        if (!role) return res.status(403).json({ success: false, error: 'Access denied' });
+        if (role === 'viewer') return res.status(403).json({ success: false, error: 'Viewer tidak dapat mengunggah foto' });
+
+        const [rows] = await pool.query('SELECT * FROM device WHERE device_id = ?', [deviceId]);
+        if (rows.length === 0) return res.status(404).json({ success: false, error: 'Device tidak ditemukan' });
+        const device = rows[0];
+
+        const buf = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || []);
+        if (!buf || buf.length === 0) {
+            return res.status(400).json({ success: false, error: 'Body gambar kosong' });
+        }
+
+        if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+        const safeId = String(device.device_id).replace(/[^a-zA-Z0-9_-]/g, '');
+        const filename = `${safeId}-${triggerSource}-${Date.now()}.jpg`;
+        const fullPath = path.join(UPLOAD_DIR, filename);
+        fs.writeFileSync(fullPath, buf);
+
+        const filepath = `/uploads/captures/${filename}`;
+        const incubatorId = device.linked_incubator_id || device.device_id;
+        const [result] = await pool.query(
+            'INSERT INTO camera_captures (device_id, incubator_id, filename, filepath, filesize, trigger_source) VALUES (?, ?, ?, ?, ?, ?)',
+            [device.device_id, incubatorId, filename, filepath, buf.length, triggerSource]
+        );
+
+        const [saved] = await pool.query('SELECT * FROM camera_captures WHERE id = ?', [result.insertId]);
+        const photo = saved[0] || { id: result.insertId, filename, filepath, captured_at: new Date() };
+
+        broadcast(req, incubatorId, 'camera-photo-received', photo);
+
+        console.log(`[CameraController] Web upload (${triggerSource}) ${filepath} (${buf.length} bytes) for ${device.device_id}`);
+        res.json({ success: true, id: photo.id, filename, filepath, filesize: buf.length });
+
+        setImmediate(() => {
+            processCaptureFertility(req, photo, buf, filename, incubatorId);
+        });
+    } catch (e) {
+        console.error('[CameraController webUploadCapture]', e.message);
+        res.status(500).json({ success: false, error: 'Gagal menyimpan foto' });
+    }
+}
+
+// Analisis ulang fertilitas untuk foto yang sebelumnya gagal
+async function reanalyzeCapture(req, res) {
+    const deviceId = req.params.id;
+    const captureId = req.params.captureId;
+    const userId = getUserId(req);
+
+    try {
+        const role = await getDeviceAccess(deviceId, userId);
+        if (!role) return res.status(403).json({ success: false, error: 'Access denied' });
+        if (role === 'viewer') return res.status(403).json({ success: false, error: 'Viewer tidak dapat menganalisis ulang' });
+
+        const [rows] = await pool.query(
+            'SELECT * FROM camera_captures WHERE id = ? AND (device_id = ? OR incubator_id = ?)',
+            [captureId, deviceId, deviceId]
+        );
+        if (rows.length === 0) return res.status(404).json({ success: false, error: 'Foto tidak ditemukan' });
+        const capture = rows[0];
+
+        if (!capture.filepath || !capture.filepath.startsWith('/uploads/')) {
+            return res.status(400).json({ success: false, error: 'Path file foto tidak valid' });
+        }
+        const fullPath = path.join(UPLOAD_DIR, path.basename(capture.filepath));
+        if (!fs.existsSync(fullPath)) {
+            return res.status(404).json({ success: false, error: 'File foto tidak ditemukan di server' });
+        }
+
+        const buf = fs.readFileSync(fullPath);
+
+        await pool.query(
+            'UPDATE camera_captures SET fertility_status = ?, fertility_error = NULL WHERE id = ?',
+            ['processing', captureId]
+        );
+        broadcast(req, capture.incubator_id || deviceId, 'camera-fertility-result', { id: Number(captureId), status: 'processing' });
+
+        res.json({ success: true, status: 'processing' });
+
+        setImmediate(() => {
+            processCaptureFertility(req, capture, buf, capture.filename, capture.incubator_id || deviceId);
+        });
+    } catch (e) {
+        console.error('[CameraController reanalyzeCapture]', e.message);
+        res.status(500).json({ success: false, error: 'Gagal memicu analisis ulang' });
+    }
+}
+
 async function getCaptures(req, res) {
     const deviceId = req.params.id;
     try {
@@ -271,6 +369,8 @@ module.exports = {
     unpairCamera,
     triggerCapture,
     uploadCapture,
+    webUploadCapture,
     getCaptures,
-    deleteCapture
+    deleteCapture,
+    reanalyzeCapture
 };
